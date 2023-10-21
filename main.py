@@ -1,12 +1,16 @@
 # !usr/bin/env python3
 
+from collections import deque
 from decimal import Decimal
+from itertools import pairwise
+from math import isinf
 from pprint import pprint
 
 NODES = "abcdefgh"
 
 Graph = dict[str, dict[str, Decimal]]
 
+inf = Decimal("inf")
 graph: Graph = {node: {} for node in NODES}
 
 
@@ -15,7 +19,7 @@ def reset_graph(graph: Graph) -> None:
     graph |= {node: {} for node in NODES}
 
 
-def open_channel(graph: Graph, u: str, v: str, x: Decimal, y: Decimal) -> None:
+def open_channel(graph: Graph, u: str, v: str, x=Decimal(1), y=Decimal(1)) -> None:
     """Opens a channel between nodes `u` and `v`, where `u -> v = x` and `v -> u = y`."""
     if u not in graph or v not in graph:
         raise ValueError("Node passed as parameter does not exist.")
@@ -54,6 +58,48 @@ def transfer(graph: Graph, u: str, v: str, amount: Decimal) -> None:
 
     graph[u][v] -= amount
     graph[v][u] += amount
+
+
+def edgecost(graph: Graph, u: str, v: str) -> Decimal:
+    try:
+        graph[u][v]
+    except KeyError:
+        return inf
+    return Decimal(1)
+
+
+def dijkstra(graph: Graph, src: str, dst: str) -> tuple[deque[str], Decimal]:
+    dist = dict.fromkeys(graph, inf)
+    prev = dict.fromkeys(graph)
+    dist[src] = Decimal()
+    unmarked = set(graph)
+    while unmarked:
+        u = min(unmarked, key=dist.get)  # type: ignore
+        unmarked.remove(u)
+        if u == dst:
+            break
+        neighbours = graph[u].keys()
+        for v in neighbours & unmarked:
+            alt = dist[u] + edgecost(graph, u, v)
+            if alt < dist[v]:
+                dist[v] = alt
+                prev[v] = u
+    path = deque()  # type: ignore
+    pred = dst
+    while pred is not None:
+        path.appendleft(pred)
+        pred = prev.get(pred)  # type: ignore
+    return path, dist[dst]
+
+
+def send(graph: Graph, src: str, dst: str, amount=Decimal(1)) -> None:
+    path, cost = dijkstra(graph, src, dst)
+    if isinf(cost):
+        raise ValueError("Node is unreachable.")
+    if any(graph[u][v] < amount for (u, v) in pairwise(path)):
+        raise Exception("Path is unreachable due to insufficient funds.")
+    for u, v in pairwise(path):
+        transfer(graph, u, v, amount)
 
 
 def main() -> None:

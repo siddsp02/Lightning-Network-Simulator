@@ -104,3 +104,11 @@ def test_transfer() -> None:
     open_channel(graph, "a", "b", Decimal("1"), Decimal("1"))
     transfer(graph, "a", "b", Decimal("0.5"))
     assert graph["a"]["b"] == Decimal("0.5") and graph["b"]["a"] == Decimal("1.5")
+
+
+def test_dijkstra() -> None:
+    assert False
+
+
+def test_send() -> None:
+    assert False
