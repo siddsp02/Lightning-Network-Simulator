@@ -33,7 +33,6 @@ def open_channel(
     """Opens a channel between nodes `u` and `v`,
     where `u -> v = x` and `v -> u = y`.
     """
-
     if u not in graph or v not in graph:
         raise ValueError("Node passed as parameter does not exist.")
     if u == v:
@@ -42,7 +41,6 @@ def open_channel(
         raise ValueError("Channel amount cannot be negative.")
     if (u, v) in opened_channels:
         raise Exception("Channel has already been opened.")
-
     # Channels are opened between two nodes.
     channel = (u, v), (v, u)
     # Add channel to opened channels.
@@ -71,16 +69,16 @@ def close_channel(
         raise Exception("Cannot close a channel that has already been closed.")
     if (u, v) not in opened_channels:
         raise Exception("Cannot close a channel that hasn't been opened.")
-
-    # Remove channel from opened channels.
+    # Channels are closed between two nodes.
     channel = (u, v), (v, u)
-    for pair in channel:
-        opened_channels.remove(pair)
     # Add channel to closed channels.
     closed_channels.update(channel)
+    # Remove channel from opened channels.
+    for pair in channel:
+        opened_channels.remove(pair)
     # Reset channel balances to 0.
-    graph[u][v] = Decimal()
-    graph[v][u] = Decimal()
+    graph[u][v] = Decimal("0")
+    graph[v][u] = Decimal("0")
 
 
 def transfer(
@@ -93,8 +91,11 @@ def transfer(
     """Transfers an amount `amount` from `u` to `v`."""
     if amount < 0:
         raise ValueError("Transfer amount cannot be negative.")
+    if amount > graph[u][v]:
+        raise ValueError("Insufficient funds.")
     if (u, v) not in opened_channels:
         raise Exception(f"Channel between nodes {u} and {v} does not exist.")
+    # Send balance from `u` to `v`.
     graph[u][v] -= amount
     graph[v][u] += amount
 
