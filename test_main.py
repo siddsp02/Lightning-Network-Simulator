@@ -2,7 +2,7 @@ from decimal import Decimal
 
 import pytest
 
-from main import close_channel, graph, open_channel
+from main import close_channel, graph, open_channel, transfer
 
 
 def test_open_channel() -> None:
@@ -26,6 +26,14 @@ def test_open_channel() -> None:
     with pytest.raises(KeyError):
         open_channel("z", "a", Decimal("2.5"), Decimal("2.5"))
 
+    # Test opening a channel that has already been opened.
+    with pytest.raises(Exception):
+        open_channel("a", "b", Decimal("2.5"), Decimal("2.5"))
+
+    # Test opening a channel from a node to itself.
+    with pytest.raises(Exception):
+        open_channel("a", "a", Decimal("2.5"), Decimal("2.5"))
+
 
 def test_close_channel() -> None:
     # Try closing a channel between two nodes in `graph`.
@@ -43,3 +51,11 @@ def test_close_channel() -> None:
     # Test closing a channel that has already been closed.
     with pytest.raises(Exception):
         close_channel("a", "b")
+
+
+def test_transfer() -> None:
+    # Try making a normal transfer.
+    graph["a"]["b"] = Decimal("5")
+    graph["b"]["a"] = Decimal("5")
+    transfer("a", "b", Decimal("2.5"))
+    assert graph["a"]["b"] == Decimal("2.5") and graph["b"]["a"] == Decimal("7.5")
