@@ -31,7 +31,7 @@ def test_open_channel() -> None:
         open_channel("a", "b", Decimal("2.5"), Decimal("2.5"))
 
     # Test opening a channel from a node to itself.
-    with pytest.raises(Exception):
+    with pytest.raises(ValueError):
         open_channel("a", "a", Decimal("2.5"), Decimal("2.5"))
 
 
