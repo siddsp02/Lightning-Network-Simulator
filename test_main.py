@@ -2,11 +2,11 @@ from decimal import Decimal
 
 import pytest
 
-from main import close_channel, graph, open_channel, reset_graph, transfer
+from main import close_channel, graph, open_channel, reset, transfer
 
 
 def test_open_channel() -> None:
-    reset_graph(graph)
+    reset(graph)
     # Test opening a normal channel between two nodes in `graph`.
     open_channel(
         graph,
@@ -77,7 +77,7 @@ def test_open_channel() -> None:
             Decimal("2.5"),
         )
 
-    reset_graph(graph)
+    reset(graph)
 
 
 def test_close_channel() -> None:
@@ -100,7 +100,7 @@ def test_close_channel() -> None:
 
 def test_transfer() -> None:
     # Try making a normal transfer.
-    reset_graph(graph)
+    reset(graph)
     open_channel(graph, "a", "b", Decimal("1"), Decimal("1"))
     transfer(graph, "a", "b", Decimal("0.5"))
     assert graph["a"]["b"] == Decimal("0.5") and graph["b"]["a"] == Decimal("1.5")

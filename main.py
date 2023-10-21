@@ -5,6 +5,7 @@ from decimal import Decimal
 from itertools import pairwise
 from math import isinf
 from pprint import pprint
+from typing import Sequence
 
 NODES = "abcdefgh"
 
@@ -14,7 +15,11 @@ inf = Decimal("inf")
 graph: Graph = {node: {} for node in NODES}
 
 
-def reset_graph(graph: Graph) -> None:
+def create(nodes: Sequence[str] | str) -> Graph:
+    return {node: {} for node in nodes}
+
+
+def reset(graph: Graph) -> None:
     """Utility function for resetting graph values and channel data."""
     graph |= {node: {} for node in NODES}
 
