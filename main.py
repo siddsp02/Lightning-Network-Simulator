@@ -51,7 +51,7 @@ def close_channel(graph: Graph, u: str, v: str) -> None:
 
 
 def transfer(graph: Graph, u: str, v: str, amount: Decimal) -> None:
-    """Transfers an amount `amount` from `u` to `v`."""
+    """Transfers an amount `amount` from `u` to `v` through a single channel (u, v)."""
     if u not in graph or v not in graph:
         raise ValueError("Node passed as parameter does not exist.")
     if amount < 0:
@@ -66,6 +66,7 @@ def transfer(graph: Graph, u: str, v: str, amount: Decimal) -> None:
 
 
 def edgecost(graph: Graph, u: str, v: str) -> Decimal:
+    """Returns the cost/weight of an edge (u, v) on a graph."""
     try:
         graph[u][v]
     except KeyError:
@@ -74,6 +75,9 @@ def edgecost(graph: Graph, u: str, v: str) -> Decimal:
 
 
 def dijkstra(graph: Graph, src: str, dst: str) -> tuple[deque[str], Decimal]:
+    """Dijkstra's shortest path algorithm for finding the shortest
+    path between any two given vertices or nodes on a graph.
+    """
     dist = dict.fromkeys(graph, inf)
     prev = dict.fromkeys(graph)
     dist[src] = Decimal()
@@ -98,6 +102,9 @@ def dijkstra(graph: Graph, src: str, dst: str) -> tuple[deque[str], Decimal]:
 
 
 def send(graph: Graph, src: str, dst: str, amount=Decimal(1)) -> None:
+    """Sends an amount `amount` from `src` to `dst` based
+    on the shortest path between the two if one exists.
+    """
     path, cost = dijkstra(graph, src, dst)
     if isinf(cost):
         raise ValueError("Node is unreachable.")
