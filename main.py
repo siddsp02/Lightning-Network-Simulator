@@ -15,11 +15,7 @@ def reset_graph(graph: dict[str, dict[str, Decimal]]) -> None:
 
 
 def open_channel(
-    graph: dict[str, dict[str, Decimal]],
-    u: str,
-    v: str,
-    x: Decimal,
-    y: Decimal,
+    graph: dict[str, dict[str, Decimal]], u: str, v: str, x: Decimal, y: Decimal
 ) -> None:
     """Opens a channel between nodes `u` and `v`, where `u -> v = x` and `v -> u = y`."""
     if u not in graph or v not in graph:
@@ -35,12 +31,8 @@ def open_channel(
     graph[v][u] = y
 
 
-def close_channel(
-    graph: dict[str, dict[str, Decimal]],
-    u: str,
-    v: str,
-) -> None:
-    """Closes a channel between nodes `u` and `v`. Channels are deleted from graph."""
+def close_channel(graph: dict[str, dict[str, Decimal]], u: str, v: str) -> None:
+    """Closes a channel between nodes `u` and `v`. Channel is deleted from graph."""
     if u not in graph or v not in graph:
         raise ValueError("Node passed as parameter does not exist.")
     if graph[u].get(v) is None:
@@ -51,10 +43,7 @@ def close_channel(
 
 
 def transfer(
-    graph: dict[str, dict[str, Decimal]],
-    u: str,
-    v: str,
-    amount: Decimal,
+    graph: dict[str, dict[str, Decimal]], u: str, v: str, amount: Decimal
 ) -> None:
     """Transfers an amount `amount` from `u` to `v`."""
     if u not in graph or v not in graph:
@@ -71,7 +60,10 @@ def transfer(
 
 
 def main() -> None:
-    ...
+    open_channel(graph, "a", "b", Decimal("1"), Decimal("1"))
+    transfer(graph, "a", "b", Decimal("-0.5"))
+    pprint(graph)
+    close_channel(graph, "a", "b")
 
 
 if __name__ == "__main__":
