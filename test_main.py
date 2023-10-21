@@ -2,24 +2,14 @@ from decimal import Decimal
 
 import pytest
 
-from main import (
-    close_channel,
-    graph,
-    open_channel,
-    reset_graph,
-    transfer,
-    opened_channels,
-    closed_channels,
-)
+from main import close_channel, graph, open_channel, reset_graph, transfer
 
 
 def test_open_channel() -> None:
-    reset_graph(graph, opened_channels, closed_channels)
+    reset_graph(graph)
     # Test opening a normal channel between two nodes in `graph`.
     open_channel(
         graph,
-        opened_channels,
-        closed_channels,
         "a",
         "b",
         Decimal("2.5"),
@@ -31,8 +21,6 @@ def test_open_channel() -> None:
     with pytest.raises(ValueError):
         open_channel(
             graph,
-            opened_channels,
-            closed_channels,
             "a",
             "c",
             Decimal("-2.5"),
@@ -43,8 +31,6 @@ def test_open_channel() -> None:
     with pytest.raises(ValueError):
         open_channel(
             graph,
-            opened_channels,
-            closed_channels,
             "a",
             "d",
             Decimal("-2.5"),
@@ -55,8 +41,6 @@ def test_open_channel() -> None:
     with pytest.raises(ValueError):
         open_channel(
             graph,
-            opened_channels,
-            closed_channels,
             "a",
             "z",
             Decimal("2.5"),
@@ -67,8 +51,6 @@ def test_open_channel() -> None:
     with pytest.raises(ValueError):
         open_channel(
             graph,
-            opened_channels,
-            closed_channels,
             "z",
             "a",
             Decimal("2.5"),
@@ -79,8 +61,6 @@ def test_open_channel() -> None:
     with pytest.raises(Exception):
         open_channel(
             graph,
-            opened_channels,
-            closed_channels,
             "a",
             "b",
             Decimal("2.5"),
@@ -91,37 +71,36 @@ def test_open_channel() -> None:
     with pytest.raises(ValueError):
         open_channel(
             graph,
-            opened_channels,
-            closed_channels,
             "a",
             "a",
             Decimal("2.5"),
             Decimal("2.5"),
         )
 
+    reset_graph(graph)
+
 
 def test_close_channel() -> None:
     # Try closing a channel between two nodes in `graph`.
-    close_channel(graph, opened_channels, closed_channels, "a", "b")
-    assert graph["a"]["b"] == Decimal("0") and graph["b"]["a"] == Decimal("0")
+    with pytest.raises(Exception):
+        close_channel(graph, "a", "b")
 
     # Test closing a channel from a node that does not exist.
     with pytest.raises(ValueError):
-        close_channel(graph, opened_channels, closed_channels, "z", "a")
+        close_channel(graph, "z", "a")
 
     # Test closing a channel to a node that does not exist.
     with pytest.raises(ValueError):
-        close_channel(graph, opened_channels, closed_channels, "a", "z")
+        close_channel(graph, "a", "z")
 
     # Test closing a channel that has already been closed.
     with pytest.raises(Exception):
-        close_channel(graph, opened_channels, closed_channels, "a", "b")
+        close_channel(graph, "a", "b")
 
 
 def test_transfer() -> None:
     # Try making a normal transfer.
-    graph["a"]["b"] = Decimal("5")
-    graph["b"]["a"] = Decimal("5")
-    opened_channels.update([("a", "b"), ("b", "a")])
-    transfer(graph, opened_channels, "a", "b", Decimal("2.5"))
-    assert graph["a"]["b"] == Decimal("2.5") and graph["b"]["a"] == Decimal("7.5")
+    reset_graph(graph)
+    open_channel(graph, "a", "b", Decimal("1"), Decimal("1"))
+    transfer(graph, "a", "b", Decimal("0.5"))
+    assert graph["a"]["b"] == Decimal("0.5") and graph["b"]["a"] == Decimal("1.5")
