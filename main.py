@@ -12,7 +12,7 @@ graph: Graph = {node: {} for node in NODES}
 
 def reset_graph(graph: Graph) -> None:
     """Utility function for resetting graph values and channel data."""
-    graph.update((node, {}) for node in NODES)
+    graph |= {node: {} for node in NODES}
 
 
 def open_channel(graph: Graph, u: str, v: str, x: Decimal, y: Decimal) -> None:
