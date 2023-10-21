@@ -2,21 +2,20 @@
 
 from decimal import Decimal
 from pprint import pprint
-from typing import MutableMapping
 
 NODES = "abcdefgh"
 
-graph = {node: {} for node in NODES}  # type: ignore
+Graph = dict[str, dict[str, Decimal]]
+
+graph: Graph = {node: {} for node in NODES}
 
 
-def reset_graph(graph: dict[str, dict[str, Decimal]]) -> None:
+def reset_graph(graph: Graph) -> None:
     """Utility function for resetting graph values and channel data."""
     graph.update((node, {}) for node in NODES)
 
 
-def open_channel(
-    graph: dict[str, dict[str, Decimal]], u: str, v: str, x: Decimal, y: Decimal
-) -> None:
+def open_channel(graph: Graph, u: str, v: str, x: Decimal, y: Decimal) -> None:
     """Opens a channel between nodes `u` and `v`, where `u -> v = x` and `v -> u = y`."""
     if u not in graph or v not in graph:
         raise ValueError("Node passed as parameter does not exist.")
@@ -31,7 +30,7 @@ def open_channel(
     graph[v][u] = y
 
 
-def close_channel(graph: dict[str, dict[str, Decimal]], u: str, v: str) -> None:
+def close_channel(graph: Graph, u: str, v: str) -> None:
     """Closes a channel between nodes `u` and `v`. Channel is deleted from graph."""
     if u not in graph or v not in graph:
         raise ValueError("Node passed as parameter does not exist.")
@@ -42,9 +41,7 @@ def close_channel(graph: dict[str, dict[str, Decimal]], u: str, v: str) -> None:
     del graph[v][u]
 
 
-def transfer(
-    graph: dict[str, dict[str, Decimal]], u: str, v: str, amount: Decimal
-) -> None:
+def transfer(graph: Graph, u: str, v: str, amount: Decimal) -> None:
     """Transfers an amount `amount` from `u` to `v`."""
     if u not in graph or v not in graph:
         raise ValueError("Node passed as parameter does not exist.")
