@@ -2,12 +2,10 @@ from collections import deque
 from dataclasses import dataclass, field
 import doctest
 from enum import Enum, auto
-from os import path
 import random
 from decimal import Decimal
 from itertools import product
-from pprint import pprint
-from typing import Iterator, NamedTuple
+from typing import Iterator
 
 
 class TransactionStatus(Enum):
