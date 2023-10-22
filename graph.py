@@ -1,25 +1,26 @@
-# !usr/bin/env python3
-
 import textwrap
 from collections import deque
 from decimal import Decimal
 from itertools import pairwise
-from math import isinf
 from pprint import pformat
-from typing import Iterator, MutableMapping, Sequence
+from typing import Iterable, Iterator, MutableMapping
 
-NODES = "abcdefgh"
+MIN_TRANSACTION_VALUE = Decimal("0.1")
+MAX_TRANSACTION_VALUE = Decimal("250")
+DEFAULT_TRANSACTION_VALUE = MIN_TRANSACTION_VALUE
+DEFAULT_CHANNEL_CAPACITY = Decimal("2")
+DEFAULT_CHANNEL_BALANACE = DEFAULT_CHANNEL_CAPACITY / 2
 
 inf = Decimal("inf")
 
 
 class Graph(MutableMapping):
-    def __init__(self, nodes: Sequence[str] | str) -> None:
-        self.nodes = nodes
-        self.graph = {node: {} for node in nodes}  # type: ignore
+    def __init__(self, nodes: Iterable[str] | str) -> None:
+        self.nodes = nodes  # type: ignore
+        self.graph = {node: {} for node in self.nodes}  # type: ignore
 
     def __repr__(self) -> str:
-        return "{0}(\n{1},\n)".format(
+        return "{}(\n{},\n)".format(
             type(self).__name__, textwrap.indent(pformat(self.graph), " " * 4)
         )
 
@@ -38,13 +39,23 @@ class Graph(MutableMapping):
     def __len__(self) -> int:
         return len(self.graph)
 
+    @property
+    def nodes(self) -> list[str]:
+        return sorted(self.nodeset)
+
+    @nodes.setter
+    def nodes(self, nodes: Iterable[str]) -> None:
+        self.nodeset = set(nodes)
+
     def reset(self) -> None:
         """Utility function for resetting graph values and channel data."""
         self.update((node, {}) for node in self.nodes)
 
-    def open_channel(self, u: str, v: str, x=Decimal(1), y=Decimal(1)) -> None:
+    def open_channel(
+        self, u: str, v: str, x=DEFAULT_CHANNEL_BALANACE, y=DEFAULT_CHANNEL_BALANACE
+    ) -> None:
         """Opens a channel between nodes `u` and `v`, where `u -> v = x` and `v -> u = y`."""
-        if u not in self or v not in self:
+        if u not in self.nodeset or v not in self.nodeset:
             raise ValueError("Node passed as parameter does not exist.")
         if u == v:
             raise ValueError("Node cannot open channel with itself.")
@@ -91,6 +102,10 @@ class Graph(MutableMapping):
     def dijkstra(self, src: str, dst: str) -> tuple[deque[str], Decimal]:
         """Dijkstra's shortest path algorithm for finding the shortest
         path between any two given vertices or nodes on a graph.
+
+        References:
+            - https://github.com/siddsp02/Dijkstras-Algorithm/blob/main/dijkstra.py
+            - https://en.wikipedia.org/wiki/Dijkstra%27s_algorithm
         """
         dist = dict.fromkeys(self, inf)
         prev = dict.fromkeys(self)
@@ -114,12 +129,12 @@ class Graph(MutableMapping):
             pred = prev.get(pred)  # type: ignore
         return path, dist[dst]
 
-    def send(self, src: str, dst: str, amount=Decimal(1)) -> None:
+    def send(self, src: str, dst: str, amount=DEFAULT_TRANSACTION_VALUE) -> None:
         """Sends an amount `amount` from `src` to `dst` based
         on the shortest path between the two if one exists.
         """
         path, cost = self.dijkstra(src, dst)
-        if isinf(cost):
+        if cost == inf:
             raise ValueError("Node is unreachable.")
         if any(self[u][v] < amount for (u, v) in pairwise(path)):
             raise Exception("Path is unreachable due to insufficient funds.")
