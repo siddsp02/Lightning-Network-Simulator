@@ -30,7 +30,7 @@ def unpopulated_nodes(graph: Graph, nodes: Iterable[str]) -> Iterable[str]:
 
 
 def generate_channels(graph: Graph) -> None:
-    nodes = unpopulated_nodes(graph, graph.nodes)
+    nodes = unpopulated_nodes(graph, map(str, graph.nodes))
     for node in nodes:
         neighbours = unpopulated_nodes(graph, remaining_nodes(graph, node))
         for neighbour in neighbours:
@@ -49,10 +49,10 @@ def main() -> None:
     t0 = time.perf_counter()
     while attempts < NUMBER_OF_TRANSACTIONS:
         # Randomly select two nodes from the network.
-        sender, receiver = random.sample(graph.nodes, 2)
-        if graph.get_balance(sender) < DEFAULT_TRANSACTION_VALUE:
+        sender, receiver = map(graph.get_node, random.sample(graph.nodes, 2))
+        if sender.balance < DEFAULT_TRANSACTION_VALUE:
             continue
-        txs.append(graph.send(sender, receiver))
+        txs.append(sender.send(receiver))
         attempts += 1
     t1 = time.perf_counter()
     successes = countOf((tx.status for tx in txs), TxStatus.SUCCESS)

@@ -38,6 +38,11 @@ def rand(precision: int = 2) -> Decimal:
     return Decimal(f"{val:.{precision}f}")
 
 
+def rand_between(lower: Decimal, upper: Decimal, precision: int = 2) -> Decimal:
+    result = random.uniform(float(lower), float(upper))
+    return round(Decimal(result), precision)
+
+
 def generate_node_names(chars: str, maxlen: int = 2) -> Iterator[str]:
     """Utility function for generating node names for a large graph.
 

@@ -1,9 +1,13 @@
+from __future__ import annotations
+
 import textwrap
 from collections import deque
+from dataclasses import dataclass, field
 from decimal import Decimal
 from itertools import pairwise
 from pprint import pformat
-from typing import Iterable, Iterator, MutableMapping
+from types import MappingProxyType
+from typing import Iterable, Iterator, Mapping, MutableMapping, Self
 
 from utils import TxData, TxStatus
 
@@ -147,3 +151,49 @@ class Graph(MutableMapping):
     def get_balance(self, node: str) -> Decimal:
         """Returns the outgoing balance of a node on a graph."""
         return sum(self[node].values())  # type: ignore
+
+    def get_node(self, node: str) -> Node:
+        """Returns a node instance that belongs to the graph."""
+        if node not in self.nodeset:
+            raise KeyError("Node does not exist in graph.")
+        return Node(node, self)
+
+
+@dataclass
+class Node:
+    """Wrapper class that allows easy access to a graph from a node.
+    Supports retrieving balances and channel information, and performing
+    graph operations that involve a node.
+    """
+
+    name: str
+    graph: Graph = field(repr=False)
+
+    def __post_init__(self) -> None:
+        if self.name not in self.graph.nodeset:
+            raise ValueError("Node does not exist on graph.")
+
+    def __str__(self) -> str:
+        return self.name
+
+    @property
+    def balance(self) -> Decimal:
+        return self.graph.get_balance(self.name)
+
+    @property
+    def channels(self) -> Mapping[str, Decimal]:
+        return MappingProxyType(self.graph[self.name])
+
+    def send(self, node: Self | str, amount=DEFAULT_TRANSACTION_VALUE) -> TxData:
+        return self.graph.send(self.name, str(node))
+
+    def open_channel(
+        self,
+        node: Self | str,
+        outbound=DEFAULT_CHANNEL_BALANACE,
+        inbound=DEFAULT_CHANNEL_BALANACE,
+    ) -> None:
+        self.graph.open_channel(self.name, str(node), outbound, inbound)
+
+    def close_channel(self, node: Self | str) -> None:
+        self.graph.close_channel(self.name, str(node))
