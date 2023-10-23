@@ -5,11 +5,13 @@ from itertools import pairwise
 from pprint import pformat
 from typing import Iterable, Iterator, MutableMapping
 
-MIN_TRANSACTION_VALUE = Decimal("0.1")
+from utils import TxData, TxStatus
+
+MIN_TRANSACTION_VALUE = Decimal("5")
 MAX_TRANSACTION_VALUE = Decimal("250")
 DEFAULT_TRANSACTION_VALUE = MIN_TRANSACTION_VALUE
-DEFAULT_CHANNEL_CAPACITY = Decimal("2")
-DEFAULT_CHANNEL_BALANACE = DEFAULT_CHANNEL_CAPACITY / 2
+DEFAULT_CHANNEL_CAPACITY = MAX_TRANSACTION_VALUE * 2
+DEFAULT_CHANNEL_BALANACE = MAX_TRANSACTION_VALUE
 
 inf = Decimal("inf")
 
@@ -20,9 +22,8 @@ class Graph(MutableMapping):
         self.graph = {node: {} for node in self.nodes}  # type: ignore
 
     def __repr__(self) -> str:
-        return "{}(\n{},\n)".format(
-            type(self).__name__, textwrap.indent(pformat(self.graph), " " * 4)
-        )
+        fmt = pformat(self.graph)
+        return "{}(\n{},\n)".format(type(self).__name__, textwrap.indent(fmt, " " * 4))
 
     def __getitem__(self, k: str) -> dict[str, Decimal]:
         return self.graph[k]
@@ -129,17 +130,19 @@ class Graph(MutableMapping):
             pred = prev.get(pred)  # type: ignore
         return path, dist[dst]
 
-    def send(self, src: str, dst: str, amount=DEFAULT_TRANSACTION_VALUE) -> None:
+    def send(self, src: str, dst: str, amount=DEFAULT_TRANSACTION_VALUE) -> TxData:
         """Sends an amount `amount` from `src` to `dst` based
         on the shortest path between the two if one exists.
         """
         path, cost = self.dijkstra(src, dst)
         if cost == inf:
-            raise ValueError("Node is unreachable.")
+            return TxData(path, src, dst, 0, TxStatus.UNREACHABLE)
         if any(self[u][v] < amount for (u, v) in pairwise(path)):
-            raise Exception("Path is unreachable due to insufficient funds.")
+            return TxData(path, src, dst, len(path) - 1, TxStatus.INSUFFICIENT_FUNDS)
+            # raise Exception("Path is unreachable due to insufficient funds.")
         for u, v in pairwise(path):
             self.transfer(u, v, amount)
+        return TxData(path, src, dst, len(path) - 1, TxStatus.SUCCESS)
 
     def get_balance(self, node: str) -> Decimal:
         """Returns the outgoing balance of a node on a graph."""

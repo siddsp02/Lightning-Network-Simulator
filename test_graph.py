@@ -5,6 +5,7 @@ from itertools import pairwise
 import pytest
 
 from graph import Graph
+from utils import TxStatus
 
 graph = Graph("abcdefgh")
 
@@ -119,5 +120,5 @@ def test_send() -> None:
     graph.reset()
     graph["a"]["b"] = Decimal(1)
     graph["b"]["a"] = Decimal(1)
-    with pytest.raises(Exception):
-        graph.send("a", "b", Decimal(1.5))
+    # More test cases will be added soon.
+    assert graph.send("a", "b", Decimal("1.5")).status == TxStatus.INSUFFICIENT_FUNDS

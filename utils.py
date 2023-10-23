@@ -1,28 +1,32 @@
-from collections import deque
-from dataclasses import dataclass, field
 import doctest
-from enum import Enum, auto
 import random
+from collections import deque
 from decimal import Decimal
-from itertools import product
-from typing import Iterator
+from enum import Enum, auto
+from itertools import product, starmap
+import textwrap
+from typing import Iterator, NamedTuple
 
 
-class TransactionStatus(Enum):
+class TxStatus(Enum):
     SUCCESS = auto()
-    FAILURE = auto()
+    INSUFFICIENT_FUNDS = auto()
+    UNREACHABLE = auto()
 
 
-@dataclass
-class TxData:
+class TxData(NamedTuple):
     path: deque[str]
     sender: str
     receiver: str
-    hops: int = field(init=False)
-    status: TransactionStatus
+    hops: int
+    status: TxStatus
 
-    def __post_init__(self) -> None:
-        self.hops = len(self.path)
+    def __str__(self) -> str:
+        pairs = self._asdict().items()
+        return "{}(\n{}\n)".format(
+            type(self).__name__,
+            textwrap.indent(",\n".join(starmap("{}={!r}".format, pairs)), " " * 4),
+        )
 
 
 def rand(precision: int = 2) -> Decimal:
@@ -38,7 +42,7 @@ def generate_node_names(chars: str, maxlen: int = 2) -> Iterator[str]:
     """Utility function for generating node names for a large graph.
 
     This gives out all possible substrings of length 1 to `maxlen`
-    from characters of `string`.
+    from characters of `chars`.
 
     Example:
     >>> list(generate_node_names("ab", maxlen=2))
