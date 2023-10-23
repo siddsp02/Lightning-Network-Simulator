@@ -19,9 +19,14 @@ DEFAULT_CHANNEL_BALANACE = MAX_TRANSACTION_VALUE
 
 inf = Decimal("inf")
 
+# These will be changed to TypeVars later.
 
-class Graph(MutableMapping):
-    def __init__(self, nodes: Iterable[str] | str) -> None:
+K = str
+V = Decimal
+
+
+class Graph(MutableMapping[K, MutableMapping[K, V]]):
+    def __init__(self, nodes: Iterable[K]) -> None:
         self.nodes = nodes  # type: ignore
         self.graph = {node: {} for node in self.nodes}  # type: ignore
 
@@ -29,27 +34,27 @@ class Graph(MutableMapping):
         fmt = pformat(self.graph)
         return "{}(\n{},\n)".format(type(self).__name__, textwrap.indent(fmt, " " * 4))
 
-    def __getitem__(self, k: str) -> dict[str, Decimal]:
+    def __getitem__(self, k: K) -> MutableMapping[K, V]:
         return self.graph[k]
 
-    def __setitem__(self, k: str, v: dict[str, Decimal]) -> None:
-        self.graph[k] = v
+    def __setitem__(self, k: K, v: MutableMapping[K, V]) -> None:
+        self.graph[k] = v  # type: ignore
 
-    def __delitem__(self, k: str) -> None:
+    def __delitem__(self, k: K) -> None:
         del self.graph[k]
 
-    def __iter__(self) -> Iterator[str]:
+    def __iter__(self) -> Iterator[K]:
         return iter(self.graph)
 
     def __len__(self) -> int:
         return len(self.graph)
 
     @property
-    def nodes(self) -> list[str]:
-        return sorted(self.nodeset)
+    def nodes(self) -> list[K]:
+        return sorted(self.nodeset)  # type: ignore
 
     @nodes.setter
-    def nodes(self, nodes: Iterable[str]) -> None:
+    def nodes(self, nodes: Iterable[K]) -> None:
         self.nodeset = set(nodes)
 
     def reset(self) -> None:
@@ -57,7 +62,11 @@ class Graph(MutableMapping):
         self.update((node, {}) for node in self.nodes)
 
     def open_channel(
-        self, u: str, v: str, x=DEFAULT_CHANNEL_BALANACE, y=DEFAULT_CHANNEL_BALANACE
+        self,
+        u: K,
+        v: K,
+        x: V = DEFAULT_CHANNEL_BALANACE,
+        y: V = DEFAULT_CHANNEL_BALANACE,
     ) -> None:
         """Opens a channel between nodes `u` and `v`, where `u -> v = x` and `v -> u = y`."""
         if u not in self.nodeset or v not in self.nodeset:
@@ -72,7 +81,7 @@ class Graph(MutableMapping):
         self[u][v] = x
         self[v][u] = y
 
-    def close_channel(self, u: str, v: str) -> None:
+    def close_channel(self, u: K, v: K) -> None:
         """Closes a channel between nodes `u` and `v`. Channel is deleted from graph."""
         if u not in self or v not in self:
             raise ValueError("Node passed as parameter does not exist.")
@@ -82,7 +91,7 @@ class Graph(MutableMapping):
         del self[u][v]
         del self[v][u]
 
-    def transfer(self, u: str, v: str, amount: Decimal) -> None:
+    def transfer(self, u: K, v: K, amount: V) -> None:
         """Transfers an amount `amount` from `u` to `v` through a single channel (u, v)."""
         if u not in self or v not in self:
             raise ValueError("Node passed as parameter does not exist.")
@@ -96,7 +105,7 @@ class Graph(MutableMapping):
         self[u][v] -= amount
         self[v][u] += amount
 
-    def edgecost(self, u: str, v: str) -> Decimal:
+    def edgecost(self, u: K, v: K) -> V:
         """Returns the cost/weight of an edge (u, v) on a graph."""
         try:
             self[u][v]
@@ -104,7 +113,7 @@ class Graph(MutableMapping):
             return inf
         return Decimal(1)
 
-    def dijkstra(self, src: str, dst: str) -> tuple[deque[str], Decimal]:
+    def dijkstra(self, src: K, dst: K) -> tuple[deque[K], V]:
         """Dijkstra's shortest path algorithm for finding the shortest
         path between any two given vertices or nodes on a graph.
 
@@ -127,14 +136,14 @@ class Graph(MutableMapping):
                 if alt < dist[v]:
                     dist[v] = alt
                     prev[v] = u
-        path = deque()  # type: ignore
+        path = deque[K]()
         pred = dst
         while pred is not None:
             path.appendleft(pred)
             pred = prev.get(pred)  # type: ignore
         return path, dist[dst]
 
-    def send(self, src: str, dst: str, amount=DEFAULT_TRANSACTION_VALUE) -> TxData:
+    def send(self, src: K, dst: K, amount: V = DEFAULT_TRANSACTION_VALUE) -> TxData:
         """Sends an amount `amount` from `src` to `dst` based
         on the shortest path between the two if one exists.
         """
@@ -148,11 +157,11 @@ class Graph(MutableMapping):
             self.transfer(u, v, amount)
         return TxData(path, src, dst, len(path) - 1, TxStatus.SUCCESS)
 
-    def get_balance(self, node: str) -> Decimal:
+    def get_balance(self, node: K) -> V:
         """Returns the outgoing balance of a node on a graph."""
         return sum(self[node].values())  # type: ignore
 
-    def get_node(self, node: str) -> Node:
+    def get_node(self, node: K) -> Node:
         """Returns a node instance that belongs to the graph."""
         if node not in self.nodeset:
             raise KeyError("Node does not exist in graph.")
