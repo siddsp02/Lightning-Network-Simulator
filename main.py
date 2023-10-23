@@ -1,11 +1,11 @@
 # !usr/bin/env python3
 
 import random
+import statistics
 import string
 import time
 from operator import countOf
 from pprint import pprint
-from statistics import mean
 
 from graph import DEFAULT_TRANSACTION_VALUE, Graph
 from utils import TxData, TxStatus
@@ -35,7 +35,6 @@ def main() -> None:
     # failed transactions, and the number of transactions
     # attempted.
     i = 0
-    # print(graph)
     t0 = time.perf_counter()
     txs: list[TxData] = []
     while i < NUMBER_OF_TRANSACTIONS:
@@ -53,7 +52,7 @@ def main() -> None:
     t1 = time.perf_counter()
     successes = countOf((tx.status for tx in txs), TxStatus.SUCCESS)
     failures = i - successes
-    avg_hops = mean(tx.hops for tx in txs if tx.status == TxStatus.SUCCESS)
+    avg_hops = statistics.mean(tx.hops for tx in txs if tx.status == TxStatus.SUCCESS)
     print(
         "=" * 80,
         f"Attempted Transactions: {i:_}",
@@ -69,7 +68,7 @@ def main() -> None:
         (tx for tx in txs if tx.status != TxStatus.UNREACHABLE),
         key=lambda x: x.hops,
     )
-    print(f"\nMax Hops {max_hops_tx.hops}\n")
+    print(f"Max Hops For Transaction: {max_hops_tx.hops}")
     print(max_hops_tx)
     print("=" * 80)
     pprint(graph)
