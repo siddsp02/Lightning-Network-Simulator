@@ -1,10 +1,10 @@
 import doctest
 import random
+import textwrap
 from collections import deque
 from decimal import Decimal
 from enum import Enum, auto
 from itertools import product, starmap
-import textwrap
 from typing import Iterator, NamedTuple
 
 
