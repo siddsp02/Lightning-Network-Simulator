@@ -22,10 +22,15 @@ inf = Decimal("inf")
 # These will be changed to TypeVars later.
 
 K = str
-V = Decimal
+V = Decimal | int
 
 
 class Graph(MutableMapping[K, MutableMapping[K, V]]):
+    """Data type for representing a graph on the network. The underlying
+    data structure for storing nodes and channel balances is a hashtable
+    mapping node "ids" to channel balances with its peers.
+    """
+
     def __init__(self, nodes: Iterable[K]) -> None:
         self.nodes = nodes  # type: ignore
         self.graph = {node: {} for node in self.nodes}  # type: ignore
@@ -152,7 +157,6 @@ class Graph(MutableMapping[K, MutableMapping[K, V]]):
             return TxData(path, src, dst, 0, TxStatus.UNREACHABLE)
         if any(self[u][v] < amount for (u, v) in pairwise(path)):
             return TxData(path, src, dst, len(path) - 1, TxStatus.INSUFFICIENT_FUNDS)
-            # raise Exception("Path is unreachable due to insufficient funds.")
         for u, v in pairwise(path):
             self.transfer(u, v, amount)
         return TxData(path, src, dst, len(path) - 1, TxStatus.SUCCESS)
@@ -166,6 +170,12 @@ class Graph(MutableMapping[K, MutableMapping[K, V]]):
         if node not in self.nodeset:
             raise KeyError("Node does not exist in graph.")
         return Node(node, self)
+
+    def max_sendable(self, src: K, dst: K) -> V:
+        """Returns the maximum amount that can be sent from the source
+        to the destination node (assuming the shortest path)."""
+        path, _ = self.dijkstra(src, dst)
+        return min(self[u][v] for u, v in pairwise(path))
 
 
 @dataclass
@@ -186,15 +196,15 @@ class Node:
         return self.name
 
     @property
-    def balance(self) -> Decimal:
+    def balance(self) -> Decimal | int:
         return self.graph.get_balance(self.name)
 
     @property
-    def channels(self) -> Mapping[str, Decimal]:
+    def channels(self) -> Mapping[str, Decimal | int]:
         return MappingProxyType(self.graph[self.name])
 
-    def send(self, node: Self | str, amount=DEFAULT_TRANSACTION_VALUE) -> TxData:
-        return self.graph.send(self.name, str(node))
+    def send(self, node: Self | str, amount: V = DEFAULT_TRANSACTION_VALUE) -> TxData:
+        return self.graph.send(self.name, str(node), amount)
 
     def open_channel(
         self,
@@ -206,3 +216,25 @@ class Node:
 
     def close_channel(self, node: Self | str) -> None:
         self.graph.close_channel(self.name, str(node))
+
+
+def main() -> None:
+    graph = Graph(["Alice", "Bob", "Carol", "David", "Ella", "Frank"])
+    graph.update(
+        {
+            "Alice": {"Bob": 4, "Carol": 3},
+            "Bob": {"Alice": 1, "Carol": 4, "David": 3},
+            "Carol": {"Alice": 3, "Bob": 3, "David": 0, "Ella": 1},
+            "David": {"Bob": 1, "Carol": 3, "Frank": 3},
+            "Ella": {"Carol": 3, "Frank": 1},
+            "Frank": {"David": 3, "Ella": 3},
+        }
+    )
+    alice = graph.get_node("Alice")
+    print(alice.send("Frank", 1))
+    # print(graph.send("Alice", "Frank", 2))
+    print(graph)
+
+
+if __name__ == "__main__":
+    main()
