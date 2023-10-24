@@ -1,5 +1,4 @@
 import doctest
-import multiprocessing as mp
 import random
 import textwrap
 from collections import deque
@@ -20,6 +19,7 @@ class TxData(NamedTuple):
     path: deque[str]
     sender: str
     receiver: str
+    amount: Decimal | int
     hops: int
     status: TxStatus
 
@@ -61,6 +61,7 @@ def rand(precision: int = 2) -> Decimal:
 
 
 def rand_between(lower: Decimal, upper: Decimal, precision: int = 2) -> Decimal:
+    """Returns a random Decimal value between an upper and lower bound."""
     result = random.uniform(float(lower), float(upper))
     return round(Decimal(result), precision)
 

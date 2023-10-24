@@ -7,7 +7,7 @@ from decimal import Decimal
 from itertools import pairwise
 from pprint import pformat
 from types import MappingProxyType
-from typing import Iterable, Iterator, Mapping, MutableMapping, Self
+from typing import Generator, Iterable, Iterator, Mapping, MutableMapping, Self
 
 from utils import TxData, TxStatus
 
@@ -154,12 +154,12 @@ class Graph(MutableMapping[K, MutableMapping[K, V]]):
         """
         path, cost = self.dijkstra(src, dst)
         if cost == inf:
-            return TxData(path, src, dst, 0, TxStatus.UNREACHABLE)
+            return TxData(path, src, dst, 0, 0, TxStatus.UNREACHABLE)
         if any(self[u][v] < amount for (u, v) in pairwise(path)):
-            return TxData(path, src, dst, len(path) - 1, TxStatus.INSUFFICIENT_FUNDS)
+            return TxData(path, src, dst, 0, len(path) - 1, TxStatus.INSUFFICIENT_FUNDS)
         for u, v in pairwise(path):
             self.transfer(u, v, amount)
-        return TxData(path, src, dst, len(path) - 1, TxStatus.SUCCESS)
+        return TxData(path, src, dst, amount, len(path) - 1, TxStatus.SUCCESS)
 
     def get_balance(self, node: K) -> V:
         """Returns the outgoing balance of a node on a graph."""
