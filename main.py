@@ -55,6 +55,7 @@ def main() -> None:
         txs.append(sender.send(receiver))
         attempts += 1
     t1 = time.perf_counter()
+    # Calculate and print network statistics.
     successes = countOf((tx.status for tx in txs), TxStatus.SUCCESS)
     failures = attempts - successes
     avg_hops = statistics.mean(tx.hops for tx in txs if tx.status == TxStatus.SUCCESS)
@@ -75,9 +76,10 @@ def main() -> None:
     )
     print(f"Max Hops For Transaction: {max_hops_tx.hops}")
     print(max_hops_tx)
-    print("=" * 80)
-    pprint(graph)
-    print("=" * 80)
+    if len(graph) <= 30:
+        print("=" * 80)
+        pprint(graph)
+        print("=" * 80)
 
 
 if __name__ == "__main__":
