@@ -7,7 +7,7 @@ from decimal import Decimal
 from itertools import pairwise
 from pprint import pformat
 from types import MappingProxyType
-from typing import Generator, Iterable, Iterator, Mapping, MutableMapping, Self
+from typing import Iterable, Iterator, Mapping, MutableMapping, Self
 
 from utils import TxData, TxStatus
 
