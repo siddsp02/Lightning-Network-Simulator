@@ -2,11 +2,12 @@
 
 import random
 import statistics
-import string
 import time
+from collections import Counter
+from decimal import Decimal
 from functools import partial
-from itertools import filterfalse
-from operator import countOf
+from itertools import filterfalse, product
+from operator import ne
 from pprint import pprint
 from typing import Iterable
 
@@ -39,40 +40,62 @@ def generate_channels(graph: Graph) -> None:
                 break
 
 
-def main() -> None:
-    graph = Graph(string.ascii_lowercase)
-    # Populate graph with channels.
-    generate_channels(graph)
-    # Track our attempted transactions.
-    attempts = 0
-    txs: list[TxData] = []
-    t0 = time.perf_counter()
-    while attempts < NUMBER_OF_TRANSACTIONS:
-        # Randomly select two nodes from the network.
-        sender, receiver = map(graph.get_node, random.sample(graph.nodes, 2))
-        if sender.balance < DEFAULT_TRANSACTION_VALUE:
+def generate_txs(
+    graph: Graph,
+    n: int = NUMBER_OF_TRANSACTIONS,
+    txval: int | Decimal = DEFAULT_TRANSACTION_VALUE,
+) -> list[TxData]:
+    txs = []  # type: ignore
+    while len(txs) < n:
+        sender, receiver = random.sample(graph.nodes, 2)
+        if graph.get_balance(sender) < txval:
             continue
-        txs.append(sender.send(receiver))
-        attempts += 1
+        txs.append(graph.send(sender, receiver))
+    return txs
+
+
+def main() -> None:
+    # Make a graph with m**n nodes
+    graph = Graph(map("".join, product("abcd", repeat=3)))
+    
+    # Populate graph with channels
+    print("Generating channels...")
+    generate_channels(graph)
+    print("Finished generating channels.")
+    
+    # Generate transactions on the network.
+    print("Generating transactions...")
+    t0 = time.perf_counter()
+    txs = generate_txs(graph)
     t1 = time.perf_counter()
-    # Calculate and print network statistics.
-    successes = countOf((tx.status for tx in txs), TxStatus.SUCCESS)
+    print("Finished generating transactions.\n")
+    
+    # Calculate network statistics.
+    counter = Counter(tx.status for tx in txs)
+    successes = counter[TxStatus.SUCCESS]
+    attempts = len(txs)
     failures = attempts - successes
-    avg_hops = statistics.mean(tx.hops for tx in txs if tx.status == TxStatus.SUCCESS)
+    lst = [tx.hops for tx in txs if tx.status == TxStatus.SUCCESS]
+    avg_hops = statistics.mean(lst)
+    med_hops = statistics.median(lst)
+    max_hops_tx = max(
+        filter(partial(ne, TxStatus.UNREACHABLE), txs), key=lambda x: x.hops
+    )
+    
+    # Print network statistics.
+    pprint(counter)
+    print()
     print(
-        "=" * 80,
+        f"{"STATS":=^80}\n",
         f"Attempted Transactions: {attempts:_}",
         f"Successes: {successes}",
         f"Failures: {failures}",
         f"Success Rate: {successes/attempts:.2%}",
-        f"Attempted Transactions Per Second: {attempts/(t1-t0):.4f}",
+        f"Attempted Transactions Per Second: {attempts//(t1-t0)}",
         f"Average Hops Per Successful Transaction: {avg_hops:.1f}",
+        f"Median Hops Per Successful Transaction: {med_hops:.1f}\n",
         "=" * 80,
         sep="\n",
-    )
-    max_hops_tx = max(
-        (tx for tx in txs if tx.status != TxStatus.UNREACHABLE),
-        key=lambda x: x.hops,
     )
     print(f"Max Hops For Transaction: {max_hops_tx.hops}")
     print(max_hops_tx)
@@ -83,4 +106,12 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    # To be modified later. Having a seed allows reproducible results.
+    random.seed(10)
+    
+    import cProfile
+    import pstats
+
+    with cProfile.Profile() as pr:
+        main()
+        pr.print_stats(pstats.SortKey.TIME)
