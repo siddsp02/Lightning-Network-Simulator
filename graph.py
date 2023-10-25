@@ -25,7 +25,7 @@ K = str
 V = Decimal | int
 
 
-class Graph(MutableMapping[K, MutableMapping[K, V]]):
+class Graph(MutableMapping[K, dict[K, V]]):
     """Data type for representing a graph on the network. The underlying
     data structure for storing nodes and channel balances is a hashtable
     mapping node "ids" to channel balances with its peers.
@@ -39,11 +39,11 @@ class Graph(MutableMapping[K, MutableMapping[K, V]]):
         fmt = pformat(self.graph)
         return "{}(\n{},\n)".format(type(self).__name__, textwrap.indent(fmt, " " * 4))
 
-    def __getitem__(self, k: K) -> MutableMapping[K, V]:
+    def __getitem__(self, k: K) -> dict[K, V]:
         return self.graph[k]
 
-    def __setitem__(self, k: K, v: MutableMapping[K, V]) -> None:
-        self.graph[k] = v  # type: ignore
+    def __setitem__(self, k: K, v: dict[K, V]) -> None:
+        self.graph[k] = v
 
     def __delitem__(self, k: K) -> None:
         del self.graph[k]
@@ -116,7 +116,7 @@ class Graph(MutableMapping[K, MutableMapping[K, V]]):
             self[u][v]
         except KeyError:
             return inf
-        return Decimal(1)
+        return 1
 
     def dijkstra(self, src: K, dst: K) -> tuple[deque[K], V]:
         """Dijkstra's shortest path algorithm for finding the shortest
@@ -200,8 +200,8 @@ class Node:
         return self.graph.get_balance(self.name)
 
     @property
-    def channels(self) -> Mapping[str, Decimal | int]:
-        return MappingProxyType(self.graph[self.name])
+    def channels(self) -> dict[str, Decimal | int]:
+        return self.graph[self.name]
 
     def send(self, node: Self | str, amount: V = DEFAULT_TRANSACTION_VALUE) -> TxData:
         return self.graph.send(self.name, str(node), amount)
@@ -230,9 +230,9 @@ def main() -> None:
             "Frank": {"David": 3, "Ella": 3},
         }
     )
+    print(graph)
     alice = graph.get_node("Alice")
     print(alice.send("Frank", 1))
-    # print(graph.send("Alice", "Frank", 2))
     print(graph)
 
 
