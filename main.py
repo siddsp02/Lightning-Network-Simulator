@@ -4,7 +4,6 @@ import random
 import statistics
 import time
 from collections import Counter
-from decimal import Decimal
 from functools import partial
 from itertools import filterfalse, product
 from operator import ne
@@ -43,7 +42,7 @@ def generate_channels(graph: Graph) -> None:
 def generate_txs(
     graph: Graph,
     n: int = NUMBER_OF_TRANSACTIONS,
-    txval: int | Decimal = DEFAULT_TRANSACTION_VALUE,
+    txval: int = DEFAULT_TRANSACTION_VALUE,
 ) -> list[TxData]:
     txs = []  # type: ignore
     while len(txs) < n:

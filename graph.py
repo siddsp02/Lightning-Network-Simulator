@@ -3,26 +3,27 @@ from __future__ import annotations
 import textwrap
 from collections import deque
 from dataclasses import dataclass, field
-from decimal import Decimal
 from itertools import pairwise
 from pprint import pformat
-from types import MappingProxyType
-from typing import Iterable, Iterator, Mapping, MutableMapping, Self
+from typing import Iterable, Iterator, MutableMapping, Self
 
 from utils import TxData, TxStatus
 
-MIN_TRANSACTION_VALUE = Decimal("5")
-MAX_TRANSACTION_VALUE = Decimal("250")
+BITCOIN_PRICE = 30_000
+SATOSHIS_PER_BITCOIN = 100_000_000
+
+INFINITY = UINT64_MAX = 2**64 - 1  # Consider as "infinity" or our maximum edge cost.
+
+MIN_TRANSACTION_VALUE = 5
+MAX_TRANSACTION_VALUE = 250
 DEFAULT_TRANSACTION_VALUE = MIN_TRANSACTION_VALUE
 DEFAULT_CHANNEL_CAPACITY = MAX_TRANSACTION_VALUE * 2
-DEFAULT_CHANNEL_BALANACE = MAX_TRANSACTION_VALUE
-
-inf = Decimal("inf")
+DEFAULT_CHANNEL_BALANCE = MAX_TRANSACTION_VALUE
 
 # These will be changed to TypeVars later.
 
 K = str
-V = Decimal | int
+V = int
 
 
 class Graph(MutableMapping[K, dict[K, V]]):
@@ -70,8 +71,8 @@ class Graph(MutableMapping[K, dict[K, V]]):
         self,
         u: K,
         v: K,
-        x: V = DEFAULT_CHANNEL_BALANACE,
-        y: V = DEFAULT_CHANNEL_BALANACE,
+        x: V = DEFAULT_CHANNEL_BALANCE,
+        y: V = DEFAULT_CHANNEL_BALANCE,
     ) -> None:
         """Opens a channel between nodes `u` and `v`, where `u -> v = x` and `v -> u = y`."""
         if u not in self.nodeset or v not in self.nodeset:
@@ -115,7 +116,7 @@ class Graph(MutableMapping[K, dict[K, V]]):
         try:
             self[u][v]
         except KeyError:
-            return inf
+            return INFINITY
         return 1
 
     def dijkstra(self, src: K, dst: K) -> tuple[deque[K], V]:
@@ -126,9 +127,9 @@ class Graph(MutableMapping[K, dict[K, V]]):
             - https://github.com/siddsp02/Dijkstras-Algorithm/blob/main/dijkstra.py
             - https://en.wikipedia.org/wiki/Dijkstra%27s_algorithm
         """
-        dist = dict.fromkeys(self, inf)
-        prev = dict.fromkeys(self)
-        dist[src] = Decimal()
+        dist: dict[K, V] = dict.fromkeys(self, INFINITY)
+        prev: dict[K, V] = dict.fromkeys(self)  # type: ignore
+        dist[src] = 0
         unmarked = set(self)
         while unmarked:
             u = min(unmarked, key=dist.get)  # type: ignore
@@ -140,11 +141,11 @@ class Graph(MutableMapping[K, dict[K, V]]):
                 alt = dist[u] + self.edgecost(u, v)
                 if alt < dist[v]:
                     dist[v] = alt
-                    prev[v] = u
+                    prev[v] = u  # type: ignore
         path = deque[K]()
         pred = dst
         while pred is not None:
-            path.appendleft(pred)
+            path.appendleft(pred)  # type: ignore
             pred = prev.get(pred)  # type: ignore
         return path, dist[dst]
 
@@ -153,7 +154,7 @@ class Graph(MutableMapping[K, dict[K, V]]):
         on the shortest path between the two if one exists.
         """
         path, cost = self.dijkstra(src, dst)
-        if cost == inf:
+        if cost >= INFINITY:
             return TxData(path, src, dst, 0, 0, TxStatus.UNREACHABLE)
         if any(self[u][v] < amount for (u, v) in pairwise(path)):
             return TxData(path, src, dst, 0, len(path) - 1, TxStatus.INSUFFICIENT_FUNDS)
@@ -196,11 +197,11 @@ class Node:
         return self.name
 
     @property
-    def balance(self) -> Decimal | int:
+    def balance(self) -> int:
         return self.graph.get_balance(self.name)
 
     @property
-    def channels(self) -> dict[str, Decimal | int]:
+    def channels(self) -> dict[str, int]:
         return self.graph[self.name]
 
     def send(self, node: Self | str, amount: V = DEFAULT_TRANSACTION_VALUE) -> TxData:
@@ -209,8 +210,8 @@ class Node:
     def open_channel(
         self,
         node: Self | str,
-        outbound=DEFAULT_CHANNEL_BALANACE,
-        inbound=DEFAULT_CHANNEL_BALANACE,
+        outbound=DEFAULT_CHANNEL_BALANCE,
+        inbound=DEFAULT_CHANNEL_BALANCE,
     ) -> None:
         self.graph.open_channel(self.name, str(node), outbound, inbound)
 

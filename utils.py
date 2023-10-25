@@ -19,7 +19,7 @@ class TxData(NamedTuple):
     path: deque[str]
     sender: str
     receiver: str
-    amount: Decimal | int
+    amount: int
     hops: int
     status: TxStatus
 
