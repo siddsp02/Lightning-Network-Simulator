@@ -29,6 +29,31 @@ def unpopulated_nodes(graph: Graph, nodes: Iterable[str]) -> Iterable[str]:
     return filterfalse(partial(max_channels_created, graph), nodes)
 
 
+# def generate_channels(graph: Graph) -> None:
+#     processed = set()  # type: ignore
+#     n = len(graph)
+#     combs = math.comb(n, 2)
+#     while not all(min_channels_opened(graph, node) for node in graph):
+#         i = random.randint(0, combs - 1)
+#         u, v = nth_combination(graph, 2, i)
+#         if u in processed:
+#             continue
+#         if min_channels_opened(graph, u):
+#             processed.add(u)
+#         try:
+#             graph.open_channel(u, v)
+#         except Exception:
+#             ...
+#         # print(graph)
+#         # time.sleep(1)
+
+
+# The following code is supposed to generate channels on a graph
+# with at least N nodes per channel, but it is still a WIP.
+# There needs to be a more efficient way to generate channels,
+# which will be added later on.
+
+
 def generate_channels(graph: Graph) -> None:
     nodes = unpopulated_nodes(graph, map(str, graph.nodes))
     for node in nodes:
@@ -56,19 +81,19 @@ def generate_txs(
 def main() -> None:
     # Make a graph with m**n nodes
     graph = Graph(map("".join, product("abcd", repeat=3)))
-    
+
     # Populate graph with channels
     print("Generating channels...")
     generate_channels(graph)
     print("Finished generating channels.")
-    
+
     # Generate transactions on the network.
     print("Generating transactions...")
     t0 = time.perf_counter()
     txs = generate_txs(graph)
     t1 = time.perf_counter()
     print("Finished generating transactions.\n")
-    
+
     # Calculate network statistics.
     counter = Counter(tx.status for tx in txs)
     successes = counter[TxStatus.SUCCESS]
@@ -80,19 +105,19 @@ def main() -> None:
     max_hops_tx = max(
         filter(partial(ne, TxStatus.UNREACHABLE), txs), key=lambda x: x.hops
     )
-    
+
     # Print network statistics.
     pprint(counter)
     print()
     print(
-        f"{"STATS":=^80}\n",
+        "=" * 80,
         f"Attempted Transactions: {attempts:_}",
         f"Successes: {successes}",
         f"Failures: {failures}",
         f"Success Rate: {successes/attempts:.2%}",
         f"Attempted Transactions Per Second: {attempts//(t1-t0)}",
         f"Average Hops Per Successful Transaction: {avg_hops:.1f}",
-        f"Median Hops Per Successful Transaction: {med_hops:.1f}\n",
+        f"Median Hops Per Successful Transaction: {med_hops:.1f}",
         "=" * 80,
         sep="\n",
     )
@@ -107,7 +132,7 @@ def main() -> None:
 if __name__ == "__main__":
     # To be modified later. Having a seed allows reproducible results.
     random.seed(10)
-    
+
     import cProfile
     import pstats
 
