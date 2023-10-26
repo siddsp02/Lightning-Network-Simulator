@@ -53,7 +53,7 @@ class Graph(MutableMapping[str, dict[str, int]]):
         return len(self.graph)
 
     @classmethod
-    def _from_dict(cls, graph: dict[str, dict[str, int]]) -> Self:
+    def from_dict(cls, graph: dict[str, dict[str, int]]) -> Self:
         """Returns a graph instance as a wrapper over a dict.
 
         Note that this class contains a reference to the dict
@@ -65,11 +65,7 @@ class Graph(MutableMapping[str, dict[str, int]]):
 
     @property
     def nodes(self) -> list[str]:
-        return sorted(self)  # type: ignore
-
-    # @nodes.setter
-    # def nodes(self, nodes: Iterable[str]) -> None:
-    #     self = set(nodes)
+        return sorted(self)
 
     def reset(self) -> None:
         """Utility function for resetting graph values and channel data."""
@@ -146,10 +142,10 @@ class Graph(MutableMapping[str, dict[str, int]]):
                 break
             neighbours = self[u].keys()
             for v in neighbours & unmarked:
-                alt = dist[u] + self.edgecost(u, v)  # type: ignore
+                alt = dist[u] + self.edgecost(u, v)
                 if alt < dist[v]:
                     dist[v] = alt
-                    prev[v] = u  # type: ignore
+                    prev[v] = u
         path = deque[str]()
         pred = dst
         while pred is not None:
@@ -228,7 +224,7 @@ class Node:
 
 
 def main() -> None:
-    graph = Graph._from_dict(
+    graph = Graph.from_dict(
         {
             "Alice": {"Bob": 4, "Carol": 3},
             "Bob": {"Alice": 1, "Carol": 4, "David": 3},
