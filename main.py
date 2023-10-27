@@ -5,7 +5,7 @@ import statistics
 import time
 from collections import Counter
 from functools import partial
-from itertools import filterfalse, product
+from itertools import batched, combinations, filterfalse, product
 from operator import ne
 from pprint import pprint
 from typing import Iterable
@@ -33,19 +33,17 @@ def unpopulated_nodes(graph: Graph, nodes: Iterable[str]) -> Iterable[str]:
 #     processed = set()  # type: ignore
 #     n = len(graph)
 #     combs = math.comb(n, 2)
-#     while not all(min_channels_opened(graph, node) for node in graph):
+#     while not all(max_channels_created(graph, node) for node in graph):
 #         i = random.randint(0, combs - 1)
 #         u, v = nth_combination(graph, 2, i)
 #         if u in processed:
 #             continue
-#         if min_channels_opened(graph, u):
+#         if max_channels_created(graph, u):
 #             processed.add(u)
 #         try:
 #             graph.open_channel(u, v)
 #         except Exception:
 #             ...
-#         # print(graph)
-#         # time.sleep(1)
 
 
 # The following code is supposed to generate channels on a graph
@@ -64,17 +62,28 @@ def generate_channels(graph: Graph) -> None:
                 break
 
 
+def generate_channels_hub_and_spoke(graph: Graph, n=1) -> None:
+    peers = graph.nodes
+    random.shuffle(peers)
+    hubs, nodes = peers[:n], peers[n:]
+    groups = batched(nodes, (len(nodes) + 1) // n)
+    for hub, group in zip(hubs, groups, strict=True):
+        for node in group:
+            graph.open_channel(hub, node)
+    # Make sure all lightning hubs are connected to each other.
+    for u, v in combinations(hubs, 2):
+        graph.open_channel(u, v)
+
+
 def generate_txs(
-    graph: Graph,
-    n: int = NUMBER_OF_TRANSACTIONS,
-    txval: int = DEFAULT_TRANSACTION_VALUE,
+    graph: Graph, n=NUMBER_OF_TRANSACTIONS, txval=DEFAULT_TRANSACTION_VALUE
 ) -> list[TxData]:
     txs = []  # type: ignore
     while len(txs) < n:
         sender, receiver = random.sample(graph.nodes, 2)
         if graph.get_balance(sender) < txval:
             continue
-        txs.append(graph.send(sender, receiver))
+        txs.append(graph.send(sender, receiver, txval))
     return txs
 
 
@@ -136,6 +145,7 @@ if __name__ == "__main__":
     import cProfile
     import pstats
 
+    # main()
     with cProfile.Profile() as pr:
         main()
         pr.print_stats(pstats.SortKey.TIME)
