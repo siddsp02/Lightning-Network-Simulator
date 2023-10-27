@@ -72,11 +72,7 @@ class Graph(MutableMapping[str, dict[str, int]]):
         self.update((node, {}) for node in self.nodes)
 
     def open_channel(
-        self,
-        u: str,
-        v: str,
-        x: int = DEFAULT_CHANNEL_BALANCE,
-        y: int = DEFAULT_CHANNEL_BALANCE,
+        self, u: str, v: str, x=DEFAULT_CHANNEL_BALANCE, y=DEFAULT_CHANNEL_BALANCE
     ) -> None:
         """Opens a channel between nodes `u` and `v`, where `u -> v = x` and `v -> u = y`."""
         if u not in self or v not in self:
@@ -234,6 +230,7 @@ def main() -> None:
             "Frank": {"David": 3, "Ella": 3},
         }
     )
+    graph.send("Alice", "Frank", 1)
     print(graph)
 
 
