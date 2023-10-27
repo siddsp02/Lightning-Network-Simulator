@@ -7,7 +7,7 @@ from itertools import pairwise
 from pprint import pformat
 from typing import Iterable, Iterator, MutableMapping, Self
 
-from utils import TxData, TxStatus
+from src.utils import TxData, TxStatus
 
 BITCOIN_PRICE = 30_000
 SATOSHIS_PER_BITCOIN = 100_000_000

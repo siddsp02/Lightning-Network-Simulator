@@ -4,8 +4,8 @@ import random
 
 import pytest
 
-from graph import DEFAULT_CHANNEL_BALANCE, Graph
-from utils import TxStatus
+from src.graph import DEFAULT_CHANNEL_BALANCE, Graph
+from src.utils import TxStatus
 
 NODES = "abcdefgh"
 VALID_GRAPH_EDGES = list(combinations(NODES, 2))

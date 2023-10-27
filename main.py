@@ -10,8 +10,8 @@ from operator import ne
 from pprint import pprint
 from typing import Iterable
 
-from graph import DEFAULT_TRANSACTION_VALUE, Graph
-from utils import TxData, TxStatus
+from src.graph import DEFAULT_TRANSACTION_VALUE, Graph
+from src.utils import TxData, TxStatus
 
 NUMBER_OF_TRANSACTIONS = 100_000
 CHANNELS_PER_NODE = 4
