@@ -5,7 +5,7 @@ from collections import deque
 from dataclasses import dataclass, field
 from itertools import pairwise
 from pprint import pformat
-from typing import Iterable, Iterator, MutableMapping, Self
+from typing import Iterable, Iterator, MutableMapping, Self, cast
 
 from src.utils import TxData, TxStatus
 
@@ -132,7 +132,7 @@ class Graph(MutableMapping[str, dict[str, int]]):
         dist[src] = 0
         unmarked = set(self)
         while unmarked:
-            u = min(unmarked, key=dist.get)  # type: ignore
+            u = min(unmarked, key=dist.__getitem__)
             unmarked.remove(u)
             if u == dst:
                 break
@@ -146,7 +146,7 @@ class Graph(MutableMapping[str, dict[str, int]]):
         pred = dst
         while pred is not None:
             path.appendleft(pred)
-            pred = prev.get(pred)  # type: ignore
+            pred = cast(str, prev.get(pred))
         return path, dist[dst]
 
     def send(self, src: str, dst: str, amount=DEFAULT_TRANSACTION_VALUE) -> TxData:

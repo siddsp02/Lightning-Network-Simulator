@@ -111,9 +111,7 @@ def main() -> None:
     lst = [tx.hops for tx in txs if tx.status == TxStatus.SUCCESS]
     avg_hops = statistics.mean(lst)
     med_hops = statistics.median(lst)
-    max_hops_tx = max(
-        filter(partial(ne, TxStatus.UNREACHABLE), txs), key=lambda x: x.hops
-    )
+    max_hops_tx = max(filter(TxStatus.UNREACHABLE.__ne__, txs), key=lambda x: x.hops)
 
     # Print network statistics.
     pprint(counter)

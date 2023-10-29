@@ -1,6 +1,6 @@
+import random
 from collections import deque
 from itertools import combinations, pairwise
-import random
 
 import pytest
 
