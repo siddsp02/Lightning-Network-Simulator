@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import heapq
 import textwrap
 from collections import deque
 from dataclasses import dataclass, field
@@ -7,7 +8,10 @@ from itertools import pairwise
 from pprint import pformat
 from typing import Iterable, Iterator, MutableMapping, Self, cast
 
-from src.utils import TxData, TxStatus
+try:
+    from src.utils import TxData, TxStatus
+except ImportError:
+    from utils import TxData, TxStatus
 
 BITCOIN_PRICE = 30_000
 SATOSHIS_PER_BITCOIN = 100_000_000
@@ -127,21 +131,22 @@ class Graph(MutableMapping[str, dict[str, int]]):
             - https://github.com/siddsp02/Dijkstras-Algorithm/blob/main/dijkstra.py
             - https://en.wikipedia.org/wiki/Dijkstra%27s_algorithm
         """
+        queue = [(0, src)]
         dist = dict.fromkeys(self, INFINITY)
         prev = dict.fromkeys(self)
         dist[src] = 0
-        unmarked = set(self)
-        while unmarked:
-            u = min(unmarked, key=dist.__getitem__)
-            unmarked.remove(u)
+        while queue:
+            priority, u = heapq.heappop(queue)
+            if priority > dist[u]:
+                continue
             if u == dst:
                 break
-            neighbours = self[u].keys()
-            for v in neighbours & unmarked:
+            for v in self[u]:
                 alt = dist[u] + self.edgecost(u, v)
                 if alt < dist[v]:
                     dist[v] = alt
                     prev[v] = u
+                    heapq.heappush(queue, (alt, v))
         path = deque[str]()
         pred = dst
         while pred is not None:
