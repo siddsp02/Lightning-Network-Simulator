@@ -34,26 +34,6 @@ class TxData(NamedTuple):
         )
 
 
-@dataclass
-class SubstringSet(Set[str]):
-    chars: str
-    maxlen: int = 1
-
-    def __post_init__(self) -> None:
-        if len(self.chars) != len(set(self.chars)):
-            raise ValueError("Characters must be unique")
-
-    def __len__(self) -> int:
-        x = len(self.chars)
-        return sum(x**i for i in range(1, self.maxlen + 1))
-
-    def __iter__(self) -> Iterator[str]:
-        return generate_node_names(self.chars, self.maxlen)
-
-    def __contains__(self, value: str) -> bool:  # type: ignore
-        return len(value) <= self.maxlen and all(char in self.chars for char in value)
-
-
 def rand(precision: int = 2) -> Decimal:
     """Returns a random decimal value in the interval [0, 1).
 
