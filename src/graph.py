@@ -133,18 +133,21 @@ class Graph(MutableMapping[str, dict[str, int]]):
         return 1
 
     def bfs(self, src: str, dst: str) -> tuple[deque[str], int]:
+        """Breadth-first search algorithm. Finds the shortest path
+        in an unweighted graph.
+        """
         queue = deque([src])
         visited = {src}
         prev = {}
         while queue:
-            v = queue.pop()
-            if v == dst:
+            u = queue.pop()
+            if u == dst:
                 break
-            for w in self[v]:
-                if w not in visited:
-                    visited.add(w)
-                    queue.appendleft(w)
-                    prev[w] = v
+            for v in self[u]:
+                if v not in visited:
+                    visited.add(v)
+                    queue.appendleft(v)
+                    prev[v] = u
         path = reconstruct_path(prev, dst)
         return path, len(path) - 1
 
