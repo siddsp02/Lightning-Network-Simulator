@@ -123,6 +123,26 @@ class Graph(MutableMapping[str, dict[str, int]]):
             return INFINITY
         return 1
 
+    def bfs(self, src: str, dst: str) -> tuple[deque[str], int]:
+        queue = deque([src])
+        visited = {src}
+        prev = {}
+        while queue:
+            v = queue.pop()
+            if v == dst:
+                break
+            for w in self[v]:
+                if w not in visited:
+                    visited.add(w)
+                    queue.appendleft(w)
+                    prev[w] = v
+        path = deque([])
+        pred = dst
+        while pred is not None:
+            path.appendleft(pred)
+            pred = prev.get(pred)
+        return path, len(path) - 1
+
     def dijkstra(self, src: str, dst: str) -> tuple[deque[str], int]:
         """Dijkstra's shortest path algorithm for finding the shortest
         path between any two given vertices or nodes on a graph.
@@ -158,6 +178,7 @@ class Graph(MutableMapping[str, dict[str, int]]):
         """Sends an amount `amount` from `src` to `dst` based
         on the shortest path between the two if one exists.
         """
+        # path, cost = self.bfs(src, dst)
         path, cost = self.dijkstra(src, dst)
         if cost >= INFINITY:
             return TxData(path, src, dst, 0, 0, TxStatus.UNREACHABLE)
@@ -180,6 +201,7 @@ class Graph(MutableMapping[str, dict[str, int]]):
     def max_sendable(self, src: str, dst: str) -> int:
         """Returns the maximum amount that can be sent from the source
         to the destination node (assuming the shortest path)."""
+        # path, _ = self.bfs(src, dst)
         path, _ = self.dijkstra(src, dst)
         return min(self[u][v] for u, v in pairwise(path))
 
