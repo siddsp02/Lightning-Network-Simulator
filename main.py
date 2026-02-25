@@ -29,23 +29,6 @@ def unpopulated_nodes(graph: Graph, nodes: Iterable[str]) -> Iterable[str]:
     return filterfalse(partial(max_channels_created, graph), nodes)
 
 
-# def generate_channels(graph: Graph) -> None:
-#     processed = set()  # type: ignore
-#     n = len(graph)
-#     combs = math.comb(n, 2)
-#     while not all(max_channels_created(graph, node) for node in graph):
-#         i = random.randint(0, combs - 1)
-#         u, v = nth_combination(graph, 2, i)
-#         if u in processed:
-#             continue
-#         if max_channels_created(graph, u):
-#             processed.add(u)
-#         try:
-#             graph.open_channel(u, v)
-#         except Exception:
-#             ...
-
-
 # The following code is supposed to generate channels on a graph
 # with at least N nodes per channel, but it is still a WIP.
 # There needs to be a more efficient way to generate channels,
