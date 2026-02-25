@@ -29,6 +29,9 @@ DEFAULT_CHANNEL_BALANCE = MAX_TRANSACTION_VALUE
 
 
 def reconstruct_path[K](prev: dict[K, K], dest: K) -> deque[K]:
+    """Reconstruct a path traversed from the destination node back
+    to the original starting node.
+    """
     path = deque[K]()
     pred = dest
     while pred is not None:
@@ -161,7 +164,7 @@ class Graph(MutableMapping[str, dict[str, int]]):
         """
         queue = [(0, src)]
         dist = dict.fromkeys(self, INFINITY)
-        prev = dict.fromkeys(self)
+        prev = {}  # type: dict[str, str]
         dist[src] = 0
         while queue:
             priority, u = heapq.heappop(queue)
@@ -170,12 +173,15 @@ class Graph(MutableMapping[str, dict[str, int]]):
             if u == dst:
                 break
             for v in self[u]:
-                alt = dist[u] + self.edgecost(u, v)
+                # Since the graph is treated as "unweighted",
+                # the edge cost can just be considered '1'
+                # because we know that (u, v) must exist.
+                alt = dist[u] + 1
                 if alt < dist[v]:
                     dist[v] = alt
                     prev[v] = u
                     heapq.heappush(queue, (alt, v))
-        path = reconstruct_path(prev, dst)  # type: ignore
+        path = reconstruct_path(prev, dst)
         return path, dist[dst]
 
     def send(self, src: str, dst: str, amount=DEFAULT_TRANSACTION_VALUE) -> TxData:
