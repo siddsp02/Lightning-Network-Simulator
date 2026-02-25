@@ -28,6 +28,15 @@ DEFAULT_CHANNEL_CAPACITY = MAX_TRANSACTION_VALUE * 2
 DEFAULT_CHANNEL_BALANCE = MAX_TRANSACTION_VALUE
 
 
+def reconstruct_path[K](prev: dict[K, K], dest: K) -> deque[K]:
+    path = deque[K]()
+    pred = dest
+    while pred is not None:
+        path.appendleft(pred)
+        pred = prev.get(pred)
+    return path
+
+
 class Graph(MutableMapping[str, dict[str, int]]):
     """Data type for representing a graph on the network. The underlying
     data structure for storing nodes and channel balances is a hashtable
@@ -136,11 +145,7 @@ class Graph(MutableMapping[str, dict[str, int]]):
                     visited.add(w)
                     queue.appendleft(w)
                     prev[w] = v
-        path = deque([])
-        pred = dst
-        while pred is not None:
-            path.appendleft(pred)
-            pred = prev.get(pred)
+        path = reconstruct_path(prev, dst)
         return path, len(path) - 1
 
     def dijkstra(self, src: str, dst: str) -> tuple[deque[str], int]:
@@ -167,11 +172,7 @@ class Graph(MutableMapping[str, dict[str, int]]):
                     dist[v] = alt
                     prev[v] = u
                     heapq.heappush(queue, (alt, v))
-        path = deque[str]()
-        pred = dst
-        while pred is not None:
-            path.appendleft(pred)
-            pred = cast(str, prev.get(pred))
+        path = reconstruct_path(prev, dst)  # type: ignore
         return path, dist[dst]
 
     def send(self, src: str, dst: str, amount=DEFAULT_TRANSACTION_VALUE) -> TxData:
