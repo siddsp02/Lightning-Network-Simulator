@@ -276,12 +276,7 @@ class Node[K, V]:
     def send(self, node: Self | K, amount: V) -> TxData[K]:
         return self.graph.send(self.name, str(node), amount)
 
-    def open_channel(
-        self,
-        node: Self | str,
-        outbound: V = DEFAULT_CHANNEL_BALANCE,
-        inbound: V = DEFAULT_CHANNEL_BALANCE,
-    ) -> None:
+    def open_channel(self, node: Self | K, outbound: V, inbound: V) -> None:
         self.graph.open_channel(self.name, str(node), outbound, inbound)
 
     def close_channel(self, node: Self | K) -> None:
