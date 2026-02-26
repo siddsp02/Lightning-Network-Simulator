@@ -6,7 +6,7 @@ from collections import deque
 from dataclasses import dataclass, field
 from itertools import pairwise
 from pprint import pformat
-from typing import Iterable, Iterator, MutableMapping, Self, cast
+from typing import Iterable, Iterator, MutableMapping, Self, overload
 
 try:
     from src.utils import TxData, TxStatus
@@ -19,7 +19,7 @@ SATOSHIS_PER_BITCOIN = 100_000_000
 # Consider as "infinity" or our maximum edge cost.
 # Any edge with a cost greater than or equal to
 # this value is unreachable in a graph.
-INFINITY = UINT64_MAX = 0xFFFFFFFFFFFFFFFF
+INFINITY = 0xFFFFFFFFFFFFFFFF
 
 MIN_TRANSACTION_VALUE = 5
 MAX_TRANSACTION_VALUE = 250
@@ -53,14 +53,48 @@ class Graph[K, V: int](MutableMapping):
         fmt = pformat(self.graph)
         return "{}(\n{},\n)".format(type(self).__name__, textwrap.indent(fmt, " " * 4))
 
-    def __getitem__(self, k: K) -> dict[K, V]:
-        return self.graph[k]
+    @overload
+    def __getitem__(self, k: K) -> dict[K, V]: ...
 
-    def __setitem__(self, k: K, v: dict[K, V]) -> None:
-        self.graph[k] = v
+    @overload
+    def __getitem__(self, k: tuple[K, K]) -> V: ...
 
-    def __delitem__(self, k: K) -> None:
-        del self.graph[k]
+    def __getitem__(self, k):
+        if isinstance(k, tuple):
+            u, v = k
+            return self.graph[u][v]
+        else:
+            return self.graph[k]
+
+    @overload
+    def __setitem__(self, k: K, v: dict[K, V]) -> None: ...
+
+    @overload
+    def __setitem__(self, k: tuple[K, K], v: V) -> None: ...
+
+    def __setitem__(self, k, v):
+        if isinstance(k, tuple):
+            x, y = k
+            self.graph[x][y] = v
+        else:
+            self.graph[k] = v
+
+    @overload
+    def __delitem__(self, k: K) -> None: ...
+
+    @overload
+    def __delitem__(self, k: tuple[K, K]) -> None: ...
+
+    def __delitem__(self, k):
+        if isinstance(k, tuple):
+            u, v = k
+            del self.graph[u][v]
+            del self.graph[v][u]
+        else:
+            del self.graph[k]
+            for node in self.nodes:
+                if k in self.graph[node]:
+                    del self.graph[node][k]
 
     def __iter__(self) -> Iterator[K]:
         return iter(self.graph)
@@ -164,7 +198,7 @@ class Graph[K, V: int](MutableMapping):
         """
         queue = [(0, src)]
         dist: dict[K, int] = dict.fromkeys(self, INFINITY)
-        prev = {}  # type: dict[K, K]
+        prev = {}
         dist[src] = 0
         while queue:
             priority, u = heapq.heappop(queue)
@@ -239,7 +273,7 @@ class Node[K, V]:
     def channels(self) -> dict[K, V]:
         return self.graph[self.name]
 
-    def send(self, node: Self | K, amount: V = DEFAULT_TRANSACTION_VALUE) -> TxData[K]:
+    def send(self, node: Self | K, amount: V) -> TxData[K]:
         return self.graph.send(self.name, str(node), amount)
 
     def open_channel(
@@ -265,7 +299,7 @@ def main() -> None:
             "Frank": {"David": 3, "Ella": 3},
         }
     )
-    graph.send("Alice", "Frank", 1)
+    del graph["Alice", "Bob"]
     print(graph)
 
 
