@@ -40,36 +40,36 @@ def reconstruct_path[K](prev: dict[K, K], dest: K) -> deque[K]:
     return path
 
 
-class Graph(MutableMapping[str, dict[str, int]]):
+class Graph[K, V: int](MutableMapping):
     """Data type for representing a graph on the network. The underlying
     data structure for storing nodes and channel balances is a hashtable
     mapping node "ids" to channel balances with its peers.
     """
 
-    def __init__(self, nodes: Iterable[str]) -> None:
-        self.graph = {node: {} for node in nodes}  # type: ignore
+    def __init__(self, nodes: Iterable[K]) -> None:
+        self.graph = {node: {} for node in nodes}
 
     def __repr__(self) -> str:
         fmt = pformat(self.graph)
         return "{}(\n{},\n)".format(type(self).__name__, textwrap.indent(fmt, " " * 4))
 
-    def __getitem__(self, k: str) -> dict[str, int]:
+    def __getitem__(self, k: K) -> dict[K, V]:
         return self.graph[k]
 
-    def __setitem__(self, k: str, v: dict[str, int]) -> None:
+    def __setitem__(self, k: K, v: dict[K, V]) -> None:
         self.graph[k] = v
 
-    def __delitem__(self, k: str) -> None:
+    def __delitem__(self, k: K) -> None:
         del self.graph[k]
 
-    def __iter__(self) -> Iterator[str]:
+    def __iter__(self) -> Iterator[K]:
         return iter(self.graph)
 
     def __len__(self) -> int:
         return len(self.graph)
 
     @classmethod
-    def from_dict(cls, graph: dict[str, dict[str, int]]) -> Self:
+    def from_dict(cls, graph: dict[K, dict[K, V]]) -> Self:
         """Returns a graph instance as a wrapper over a dict.
 
         Note that this class contains a reference to the dict
@@ -80,7 +80,7 @@ class Graph(MutableMapping[str, dict[str, int]]):
         return ret
 
     @property
-    def nodes(self) -> list[str]:
+    def nodes(self) -> list[K]:
         return sorted(self)
 
     def reset(self) -> None:
@@ -88,7 +88,7 @@ class Graph(MutableMapping[str, dict[str, int]]):
         self.update((node, {}) for node in self.nodes)
 
     def open_channel(
-        self, u: str, v: str, x=DEFAULT_CHANNEL_BALANCE, y=DEFAULT_CHANNEL_BALANCE
+        self, u: K, v: K, x: V = DEFAULT_CHANNEL_BALANCE, y: V = DEFAULT_CHANNEL_BALANCE
     ) -> None:
         """Opens a channel between nodes `u` and `v`, where `u -> v = x` and `v -> u = y`."""
         if u not in self or v not in self:
@@ -103,7 +103,7 @@ class Graph(MutableMapping[str, dict[str, int]]):
         self[u][v] = x
         self[v][u] = y
 
-    def close_channel(self, u: str, v: str) -> None:
+    def close_channel(self, u: K, v: K) -> None:
         """Closes a channel between nodes `u` and `v`. Channel is deleted from graph."""
         if u not in self or v not in self:
             raise ValueError("Node passed as parameter does not exist.")
@@ -113,7 +113,7 @@ class Graph(MutableMapping[str, dict[str, int]]):
         del self[u][v]
         del self[v][u]
 
-    def transfer(self, u: str, v: str, amount=DEFAULT_TRANSACTION_VALUE) -> None:
+    def transfer(self, u: K, v: K, amount: V = DEFAULT_TRANSACTION_VALUE) -> None:
         """Transfers an amount `amount` from `u` to `v` through a single channel `(u, v)`."""
         if u not in self or v not in self:
             raise ValueError("Node passed as parameter does not exist.")
@@ -124,18 +124,18 @@ class Graph(MutableMapping[str, dict[str, int]]):
         if amount > self[u][v]:
             raise ValueError("Insufficient funds.")
 
-        self[u][v] -= amount
-        self[v][u] += amount
+        self[u][v] -= amount  # type: ignore
+        self[v][u] += amount  # type: ignore
 
-    def edgecost(self, u: str, v: str) -> int:
+    def edgecost(self, u: K, v: K) -> V:
         """Returns the cost/weight of an edge (u, v) on a graph."""
         try:
             self[u][v]
         except KeyError:
-            return INFINITY
-        return 1
+            return INFINITY  # type: ignore
+        return 1  # type: ignore
 
-    def bfs(self, src: str, dst: str) -> tuple[deque[str], int]:
+    def bfs(self, src: K, dst: K) -> tuple[deque[K], int]:
         """Breadth-first search algorithm. Finds the shortest path
         in an unweighted graph.
         """
@@ -154,7 +154,7 @@ class Graph(MutableMapping[str, dict[str, int]]):
         path = reconstruct_path(prev, dst)
         return path, len(path) - 1
 
-    def dijkstra(self, src: str, dst: str) -> tuple[deque[str], int]:
+    def dijkstra(self, src: K, dst: K) -> tuple[deque[K], int]:
         """Dijkstra's shortest path algorithm for finding the shortest
         path between any two given vertices or nodes on a graph.
 
@@ -163,8 +163,8 @@ class Graph(MutableMapping[str, dict[str, int]]):
             - https://en.wikipedia.org/wiki/Dijkstra%27s_algorithm
         """
         queue = [(0, src)]
-        dist = dict.fromkeys(self, INFINITY)
-        prev = {}  # type: dict[str, str]
+        dist: dict[K, int] = dict.fromkeys(self, INFINITY)
+        prev = {}  # type: dict[K, K]
         dist[src] = 0
         while queue:
             priority, u = heapq.heappop(queue)
@@ -184,12 +184,11 @@ class Graph(MutableMapping[str, dict[str, int]]):
         path = reconstruct_path(prev, dst)
         return path, dist[dst]
 
-    def send(self, src: str, dst: str, amount=DEFAULT_TRANSACTION_VALUE) -> TxData:
+    def send(self, src: K, dst: K, amount: V = DEFAULT_TRANSACTION_VALUE) -> TxData:
         """Sends an amount `amount` from `src` to `dst` based
         on the shortest path between the two if one exists.
         """
-        # path, cost = self.bfs(src, dst)
-        path, cost = self.dijkstra(src, dst)
+        path, cost = self.bfs(src, dst)
         if cost >= INFINITY:
             return TxData(path, src, dst, 0, 0, TxStatus.UNREACHABLE)
         if any(self[u][v] < amount for (u, v) in pairwise(path)):
@@ -198,32 +197,31 @@ class Graph(MutableMapping[str, dict[str, int]]):
             self.transfer(u, v, amount)
         return TxData(path, src, dst, amount, len(path) - 1, TxStatus.SUCCESS)
 
-    def get_balance(self, node: str) -> int:
+    def get_balance(self, node: K) -> int:
         """Returns the outgoing balance of a node on a graph."""
         return sum(self[node].values())
 
-    def get_node(self, node: str) -> Node:
+    def get_node(self, node: K) -> Node:
         """Returns a node instance that belongs to the graph."""
         if node not in self:
             raise KeyError("Node does not exist in graph.")
         return Node(node, self)
 
-    def max_sendable(self, src: str, dst: str) -> int:
+    def max_sendable(self, src: K, dst: K) -> V:
         """Returns the maximum amount that can be sent from the source
         to the destination node (assuming the shortest path)."""
-        # path, _ = self.bfs(src, dst)
-        path, _ = self.dijkstra(src, dst)
+        path, _ = self.bfs(src, dst)
         return min(self[u][v] for u, v in pairwise(path))
 
 
 @dataclass
-class Node:
+class Node[K, V]:
     """Wrapper class that allows easy access to a graph from a node.
     Supports retrieving balances and channel information, and performing
     graph operations that involve a node.
     """
 
-    name: str
+    name: K
     graph: Graph = field(repr=False)
 
     def __post_init__(self) -> None:
@@ -231,28 +229,28 @@ class Node:
             raise ValueError("Node does not exist on graph.")
 
     def __str__(self) -> str:
-        return self.name
+        return str(self.name)
 
     @property
     def balance(self) -> int:
         return self.graph.get_balance(self.name)
 
     @property
-    def channels(self) -> dict[str, int]:
+    def channels(self) -> dict[K, V]:
         return self.graph[self.name]
 
-    def send(self, node: Self | str, amount=DEFAULT_TRANSACTION_VALUE) -> TxData:
+    def send(self, node: Self | K, amount: V = DEFAULT_TRANSACTION_VALUE) -> TxData[K]:
         return self.graph.send(self.name, str(node), amount)
 
     def open_channel(
         self,
         node: Self | str,
-        outbound=DEFAULT_CHANNEL_BALANCE,
-        inbound=DEFAULT_CHANNEL_BALANCE,
+        outbound: V = DEFAULT_CHANNEL_BALANCE,
+        inbound: V = DEFAULT_CHANNEL_BALANCE,
     ) -> None:
         self.graph.open_channel(self.name, str(node), outbound, inbound)
 
-    def close_channel(self, node: Self | str) -> None:
+    def close_channel(self, node: Self | K) -> None:
         self.graph.close_channel(self.name, str(node))
 
 

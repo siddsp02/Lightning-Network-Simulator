@@ -18,10 +18,10 @@ class TxStatus(Enum):
     UNREACHABLE = auto()
 
 
-class TxData(NamedTuple):
-    path: deque[str]
-    sender: str
-    receiver: str
+class TxData[T](NamedTuple):
+    path: deque[T]
+    sender: T
+    receiver: T
     amount: int
     hops: int
     status: TxStatus
