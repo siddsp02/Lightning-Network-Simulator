@@ -3,13 +3,10 @@ import math
 import random
 import textwrap
 from collections import deque
-from dataclasses import dataclass
 from decimal import Decimal
 from enum import Enum, auto
 from itertools import chain, product, starmap
-from typing import Iterable, Iterator, NamedTuple, Set, TypeVar
-
-T = TypeVar("T")
+from typing import Iterable, Iterator, NamedTuple
 
 
 class TxStatus(Enum):
@@ -72,8 +69,8 @@ def generate_node_names(chars: str, maxlen: int = 2) -> Iterator[str]:
 # https://docs.python.org/3/library/itertools.html
 
 
-def nth_combination(iterable: Iterable[T], r: int, index: int) -> tuple[T, ...]:
-    """Equivalent to list(combinations(iterable, r))[index]"""
+def nth_combination[T](iterable: Iterable[T], r: int, index: int) -> tuple[T, ...]:
+    "Equivalent to list(combinations(iterable, r))[index]"
     pool = tuple(iterable)
     n = len(pool)
     c = math.comb(n, r)
