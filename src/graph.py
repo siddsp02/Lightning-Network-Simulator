@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import heapq
 import textwrap
 from collections import deque
 from dataclasses import dataclass, field
@@ -10,8 +9,10 @@ from typing import Iterable, Iterator, MutableMapping, Self, overload
 
 try:
     from src.utils import TxData, TxStatus
+    from src.algorithms import dijkstra, bfs
 except ImportError:
     from utils import TxData, TxStatus
+    from algorithms import dijkstra, bfs
 
 BITCOIN_PRICE = 30_000
 SATOSHIS_PER_BITCOIN = 100_000_000
@@ -26,18 +27,6 @@ MAX_TRANSACTION_VALUE = 250
 DEFAULT_TRANSACTION_VALUE = MIN_TRANSACTION_VALUE
 DEFAULT_CHANNEL_CAPACITY = MAX_TRANSACTION_VALUE * 2
 DEFAULT_CHANNEL_BALANCE = MAX_TRANSACTION_VALUE
-
-
-def reconstruct_path[K](prev: dict[K, K], dest: K) -> deque[K]:
-    """Reconstruct a path traversed from the destination node back
-    to the original starting node.
-    """
-    path = deque[K]()
-    pred = dest
-    while pred is not None:
-        path.appendleft(pred)
-        pred = prev.get(pred)
-    return path
 
 
 class Graph[K, V: int](MutableMapping):
@@ -79,13 +68,7 @@ class Graph[K, V: int](MutableMapping):
         else:
             self.graph[k] = v
 
-    @overload
-    def __delitem__(self, k: K) -> None: ...
-
-    @overload
-    def __delitem__(self, k: tuple[K, K]) -> None: ...
-
-    def __delitem__(self, k):
+    def __delitem__(self, k: K | tuple[K, K]) -> None:
         if isinstance(k, tuple):
             u, v = k
             del self.graph[u][v]
@@ -161,7 +144,7 @@ class Graph[K, V: int](MutableMapping):
         self[u][v] -= amount  # type: ignore
         self[v][u] += amount  # type: ignore
 
-    def edgecost(self, u: K, v: K) -> V:
+    def edge_cost(self, u: K, v: K) -> V:
         """Returns the cost/weight of an edge (u, v) on a graph."""
         try:
             self[u][v]
@@ -169,54 +152,10 @@ class Graph[K, V: int](MutableMapping):
             return INFINITY  # type: ignore
         return 1  # type: ignore
 
-    def bfs(self, src: K, dst: K) -> tuple[deque[K], int]:
-        """Breadth-first search algorithm. Finds the shortest path
-        in an unweighted graph.
-        """
-        queue = deque([src])
-        visited = {src}
-        prev = {}
-        while queue:
-            u = queue.pop()
-            if u == dst:
-                break
-            for v in self[u]:
-                if v not in visited:
-                    visited.add(v)
-                    queue.appendleft(v)
-                    prev[v] = u
-        path = reconstruct_path(prev, dst)
-        return path, len(path) - 1
+    bfs = bfs
 
     def dijkstra(self, src: K, dst: K) -> tuple[deque[K], int]:
-        """Dijkstra's shortest path algorithm for finding the shortest
-        path between any two given vertices or nodes on a graph.
-
-        References:
-            - https://github.com/siddsp02/Dijkstras-Algorithm/blob/main/dijkstra.py
-            - https://en.wikipedia.org/wiki/Dijkstra%27s_algorithm
-        """
-        queue = [(0, src)]
-        dist: dict[K, int] = dict.fromkeys(self, INFINITY)
-        prev = {}
-        dist[src] = 0
-        while queue:
-            priority, u = heapq.heappop(queue)
-            if priority > dist[u]:
-                continue
-            if u == dst:
-                break
-            for v in self[u]:
-                # Since the graph is treated as "unweighted",
-                # the edge cost can just be considered '1'
-                # because we know that (u, v) must exist.
-                alt = dist[u] + 1
-                if alt < dist[v]:
-                    dist[v] = alt
-                    prev[v] = u
-                    heapq.heappush(queue, (alt, v))
-        path = reconstruct_path(prev, dst)
-        return path, dist[dst]
+        return dijkstra(self, src, dst, weight_func=Graph.edge_cost)  # type: ignore
 
     def send(self, src: K, dst: K, amount: V = DEFAULT_TRANSACTION_VALUE) -> TxData:
         """Sends an amount `amount` from `src` to `dst` based
