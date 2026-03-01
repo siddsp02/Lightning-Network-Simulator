@@ -3,9 +3,9 @@ from __future__ import annotations
 import textwrap
 from collections import deque
 from dataclasses import dataclass, field
-from itertools import pairwise
+from itertools import pairwise, starmap
 from pprint import pformat
-from typing import Iterable, Iterator, MutableMapping, Self, overload
+from typing import Iterable, Iterator, MutableMapping, Self, Sequence, cast, overload
 
 try:
     from src.algorithms import bfs, dijkstra
@@ -29,7 +29,7 @@ DEFAULT_CHANNEL_CAPACITY = MAX_TRANSACTION_VALUE * 2
 DEFAULT_CHANNEL_BALANCE = MAX_TRANSACTION_VALUE
 
 
-class Graph[K, V: int](MutableMapping):
+class Graph[K, V: int](MutableMapping[K, MutableMapping[K, V]]):
     """Data type for representing a graph on the network. The underlying
     data structure for storing nodes and channel balances is a hashtable
     mapping node ids to channel balances with their peers.
@@ -37,6 +37,7 @@ class Graph[K, V: int](MutableMapping):
 
     def __init__(self, nodes: Iterable[K]) -> None:
         self.graph = {node: {} for node in nodes}
+        self._cached_paths = {}
 
     def __repr__(self) -> str:
         fmt = pformat(self.graph)
@@ -98,7 +99,7 @@ class Graph[K, V: int](MutableMapping):
 
     @property
     def nodes(self) -> list[K]:
-        return sorted(self)
+        return sorted(self)  # type: ignore
 
     def reset(self) -> None:
         "Utility function for resetting graph values and channel data."
@@ -108,7 +109,7 @@ class Graph[K, V: int](MutableMapping):
         self, u: K, v: K, x: V = DEFAULT_CHANNEL_BALANCE, y: V = DEFAULT_CHANNEL_BALANCE
     ) -> None:
         "Opens a channel between nodes `u` and `v`, where `u -> v = x` and `v -> u = y`."
-        if self.get((u, v)) is not None:
+        if self.get((u, v)) is not None:  # type: ignore
             raise Exception("Channel/edge already exists.")
         if u not in self or v not in self:
             raise ValueError("Node passed as parameter does not exist.")
@@ -124,7 +125,7 @@ class Graph[K, V: int](MutableMapping):
         "Closes a channel between nodes `u` and `v`. Channel is deleted from graph."
         if u not in self or v not in self:
             raise ValueError("Node passed as parameter does not exist.")
-        if self[u].get(v) is None:
+        if self.get((u, v)) is None:  # type: ignore
             raise Exception("Cannot close a channel that hasn't been opened.")
 
         del self[u][v]
@@ -132,7 +133,7 @@ class Graph[K, V: int](MutableMapping):
 
     def transfer(self, u: K, v: K, amount: V = DEFAULT_TRANSACTION_VALUE) -> None:
         "Transfers an amount `amount` from `u` to `v` through a single channel `(u, v)`."
-        if self.get((u, v)) is None:
+        if self.get((u, v)) is None:  # type: ignore
             raise Exception("Edge does not exist.")
         if amount < 0:
             raise ValueError("Transfer amount cannot be negative.")
@@ -146,7 +147,26 @@ class Graph[K, V: int](MutableMapping):
         "Returns the cost/weight of an edge (u, v) on a graph."
         return 1 if self.get((u, v)) is not None else INFINITY  # type: ignore
 
+    def _path_cost(self, path: Sequence[K]) -> V:
+        costs = list(starmap(self.edge_cost, pairwise(path)))
+        if INFINITY in costs:
+            return INFINITY
+        return sum(costs)  # type: ignore
+
     bfs = bfs
+
+    def bfs_cached(self, src: K, dst: K) -> tuple[deque[K], int]:
+        edge = (src, dst)
+        if edge in self._cached_paths:
+            path = self._cached_paths[edge]
+            cost = self._path_cost(path)
+            if cost == INFINITY:
+                path, cost = self.bfs(src, dst)
+                self._cached_paths[edge] = path
+        else:
+            path, cost = self.bfs(src, dst)
+            self._cached_paths[edge] = path
+        return path, cost
 
     def dijkstra(self, src: K, dst: K) -> tuple[deque[K], int]:
         return dijkstra(self, src, dst, weight_func=Graph.edge_cost)  # type: ignore
