@@ -24,8 +24,8 @@ def edge_weight[K, V](g: GraphLike[K, V], u: K, v: K) -> V:
 
 def dijkstra[K, V: float](
     graph: GraphLike[K, V],
-    src: K,
-    dst: K,
+    source: K,
+    dest: K,
     /,
     *,
     weight_func: Callable[[GraphLike[K, V], K, K], V] = edge_weight,
@@ -37,15 +37,15 @@ def dijkstra[K, V: float](
         - https://github.com/siddsp02/Dijkstras-Algorithm/blob/main/dijkstra.py
         - https://en.wikipedia.org/wiki/Dijkstra%27s_algorithm
     """
-    queue = [(0, src)]
+    queue = [(0, source)]
     dist = dict.fromkeys(graph, inf)
     prev = {}
-    dist[src] = 0
+    dist[source] = 0
     while queue:
         priority, u = heapq.heappop(queue)
         if priority > dist[u]:
             continue
-        if u == dst:
+        if u == dest:
             break
         for v in graph[u]:
             alt = dist[u] + weight_func(graph, u, v)
@@ -53,25 +53,25 @@ def dijkstra[K, V: float](
                 dist[v] = alt
                 prev[v] = u
                 heapq.heappush(queue, (alt, v))  # type: ignore
-    path = reconstruct_path(prev, dst)
-    return path, dist[dst]  # type: ignore
+    path = reconstruct_path(prev, dest)
+    return path, dist[dest]  # type: ignore
 
 
-def bfs[K, V](graph: GraphLike[K, V], src: K, dst: K) -> tuple[deque[K], int]:
+def bfs[K, V](graph: GraphLike[K, V], source: K, dest: K) -> tuple[deque[K], int]:
     """Breadth-first search algorithm. Finds the shortest path
     in an unweighted graph.
     """
-    queue = deque([src])
-    visited = {src}
+    queue = deque([source])
+    visited = {source}
     prev = {}
     while queue:
         u = queue.pop()
-        if u == dst:
+        if u == dest:
             break
         for v in graph[u]:
             if v not in visited:
                 visited.add(v)
                 queue.appendleft(v)
                 prev[v] = u
-    path = reconstruct_path(prev, dst)
+    path = reconstruct_path(prev, dest)
     return path, len(path) - 1
