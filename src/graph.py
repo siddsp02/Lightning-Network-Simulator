@@ -67,7 +67,7 @@ class Graph[K](nx.DiGraph):
         u, v = edge
         return 1 if (u, v) in self.edges else inf
 
-    def transfer(self, edge: tuple[K, K]) -> None:
+    def transfer(self, edge: tuple[K, K], amount: int) -> None:
         raise NotImplementedError
 
     def send(self, src: K, dest: K, amount: int) -> None:
