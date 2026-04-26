@@ -33,7 +33,7 @@ def add_key_incr(dct: dict[int, Any], v: Any) -> None:
 
 
 def is_valid_amount(amount: int | float) -> bool:
-    return isinstance(amount, int) and amount > 0
+    return isinstance(amount, int) and amount >= 0
 
 
 def valid_amounts(amounts: list[int | float]) -> bool:
