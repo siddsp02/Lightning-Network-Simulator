@@ -1,15 +1,13 @@
-from operator import itemgetter
 import textwrap
 from itertools import pairwise, starmap
 from math import inf
+from operator import itemgetter
 from pprint import pformat
 from typing import Any, Callable, Iterable, Self, Sequence
 
 import networkx as nx
 
 from utils import add_key_incr, is_valid_amount, valid_amounts
-
-DEFAULT_CHANNEL_BALANCE = 10
 
 
 def max_balance[T](dct: dict[T, int]) -> T:
@@ -32,6 +30,7 @@ class Graph[K](nx.DiGraph):
     shortest_path = nx.shortest_path
 
     def add_edge(self, u, v, **attr) -> None:
+        "Adds an edge to the graph, ensuring edges are mirrored properly."
         super().add_edge(u, v, channels={}, **attr)
         super().add_edge(v, u, channels={}, **attr)
 
@@ -46,6 +45,9 @@ class Graph[K](nx.DiGraph):
     def open_bichannels(
         self, channels: Iterable[tuple[tuple[K, int], tuple[K, int]]]
     ) -> None:
+        """Opens multiple channels initialized with balances on both sides.
+        Calling two edges that connect the same nodes doesn't update the same
+        channel, but opens a new one instead."""
         for (u, u_balance), (v, v_balance) in channels:
             if not valid_amounts([u_balance, v_balance]):
                 raise ValueError
@@ -59,16 +61,12 @@ class Graph[K](nx.DiGraph):
         two edges that have the same connecting nodes doesn't update the same channel,
         but opens a new one instead. If a channel (u, v, amount) is opened, and then
         another channel (v, u, amount) is opened, 2 channels will be created."""
-        for u, v, amount in channels:
-            if not is_valid_amount(amount):
-                raise ValueError
-            if (u, v) not in self.edges:
-                self.add_edge(u, v)
-            add_key_incr(self[u][v]["channels"], amount)
-            add_key_incr(self[v][u]["channels"], 0)
+        self.open_bichannels(
+            channels=[((u, amount), (v, 0)) for u, v, amount in channels]
+        )
 
     def close_channel(self, channel: tuple[K, K], id_: int) -> None:
-        "Closes a channel and removes it from the graph."
+        "Closes a channel and removes it from the graph. `id_` is the channel id."
         u, v = channel
         del self[u][v]["channels"][id_]
         del self[v][u]["channels"][id_]
@@ -84,6 +82,8 @@ class Graph[K](nx.DiGraph):
         picker: Callable[[dict[int, Any]], int] = max_balance,
     ) -> None:
         "Transfer an amount across an edge (u, v)."
+        # TODO: Add checks for the amount being sent to ensure that
+        # a node cannot send more than its allowed "balance".
         if edge not in self.edges:
             raise LookupError
         u, v = edge
@@ -111,7 +111,7 @@ class Graph[K](nx.DiGraph):
         max_amount = min(max_balance(self[u][v]["channels"]) for u, v in pairwise(path))
         return max_amount
 
-    def _path_cost(self, path: Sequence[K]) -> float:
+    def _path_cost(self, path: Iterable[K]) -> float:
         return sum(starmap(self.edge_cost, pairwise(path)))
 
     def reset(self) -> None:
@@ -122,7 +122,8 @@ def main() -> None:
     g = Graph()
     g.open_channels([(1, 0, 32), (1, 3, 25), (3, 1, 12)])
     print(g)
-    print(min({"a": 3, "b": 7}))
+    g.send(1, 0, amount=20)
+    print(g)
 
 
 if __name__ == "__main__":
