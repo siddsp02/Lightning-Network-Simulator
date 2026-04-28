@@ -3,16 +3,16 @@ from itertools import pairwise, starmap
 from math import inf
 from operator import itemgetter
 from pprint import pformat
-from typing import Any, Callable, Iterable, Self, Sequence
+from typing import Any, Callable, Iterable, Self
 
 import networkx as nx
 
 from utils import add_key_incr, is_valid_amount, valid_amounts
 
 
-def max_balance[T](dct: dict[T, int]) -> T:
+def max_balance[T](dct: dict[T, int], as_value: bool = False) -> T | int:
     id_, _ = max(dct.items(), key=itemgetter(1))
-    return id_
+    return id_ if not as_value else dct[id_]
 
 
 class Graph[K](nx.DiGraph):
@@ -86,29 +86,44 @@ class Graph[K](nx.DiGraph):
         # a node cannot send more than its allowed "balance".
         if edge not in self.edges:
             raise LookupError
+        if not is_valid_amount(amount):
+            raise ValueError
         u, v = edge
         u_channels = self[u][v]["channels"]
         v_channels = self[v][u]["channels"]
         channel_id = picker(u_channels)
-        if not is_valid_amount(amount):
-            raise ValueError
         balance = u_channels[channel_id]
         if balance < amount:
             raise ValueError
         u_channels[channel_id] -= amount
         v_channels[channel_id] += amount
 
+    def _transfer_no_check(
+        self,
+        edge: tuple[K, K],
+        amount: int,
+        picker: Callable[[dict[int, Any]], int] = max_balance,
+    ) -> None:
+        u, v = edge
+        u_channels = self[u][v]["channels"]
+        v_channels = self[v][u]["channels"]
+        channel_id = picker(u_channels)
+        u_channels[channel_id] -= amount
+        v_channels[channel_id] += amount
+
     def send(self, source: K, target: K, amount: int) -> None:
+        if amount < self.max_sendable(source, target):
+            raise ValueError
         path = self.shortest_path(source, target)
         for edge in pairwise(path):
-            try:
-                self.transfer(edge, amount)
-            except ValueError:
-                raise  # TODO: Handle failure and rolling back of transaction.
+            self._transfer_no_check(edge, amount)
 
     def max_sendable(self, source: K, target: K) -> float:
         path = self.shortest_path(source, target)
-        max_amount = min(max_balance(self[u][v]["channels"]) for u, v in pairwise(path))
+        max_amount = min(
+            max_balance(self[u][v]["channels"], as_value=True)
+            for u, v in pairwise(path)
+        )
         return max_amount
 
     def _path_cost(self, path: Iterable[K]) -> float:
@@ -121,9 +136,10 @@ class Graph[K](nx.DiGraph):
 def main() -> None:
     g = Graph()
     g.open_channels([(1, 0, 32), (1, 3, 25), (3, 1, 12)])
-    print(g)
-    g.send(1, 0, amount=20)
-    print(g)
+    # print(g)
+    # g.send(source=1, target=0, amount=20)
+    # print(g)
+    print(g.max_sendable(1, 3))
 
 
 if __name__ == "__main__":
