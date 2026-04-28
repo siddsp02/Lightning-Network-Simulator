@@ -7,7 +7,18 @@ from typing import Any, Callable, Iterable, Self
 
 import networkx as nx
 
-from utils import add_key_incr, is_valid_amount, valid_amounts
+
+def add_key_incr(dct: dict[int, Any], v: Any) -> None:
+    key = max(dct) + 1 if dct else 0
+    dct[key] = v
+
+
+def is_valid_amount(amount: int | float) -> bool:
+    return isinstance(amount, int) and amount >= 0
+
+
+def valid_amounts(amounts: list[int | float]) -> bool:
+    return all(map(is_valid_amount, amounts))
 
 
 def max_balance[T](dct: dict[T, int], as_value: bool = False) -> T | int:

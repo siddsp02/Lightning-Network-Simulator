@@ -25,16 +25,3 @@ class TxData[T](NamedTuple):
             type(self).__name__,
             textwrap.indent(",\n".join(starmap("{}={!r}".format, pairs)), " " * 4),
         )
-
-
-def add_key_incr(dct: dict[int, Any], v: Any) -> None:
-    key = max(dct) + 1 if dct else 0
-    dct[key] = v
-
-
-def is_valid_amount(amount: int | float) -> bool:
-    return isinstance(amount, int) and amount >= 0
-
-
-def valid_amounts(amounts: list[int | float]) -> bool:
-    return all(map(is_valid_amount, amounts))
